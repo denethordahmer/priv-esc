@@ -43,6 +43,7 @@ function boot() {
   initSettings();
   buildStaticChrome();
   initEnding();
+  initAudio();
 
   uiRender();
   setScreen('terminal');
@@ -61,9 +62,60 @@ function showOfflineSummary(info) {
     `Away for ${fmtTime(info.actualSeconds)} (${fmtTime(info.seconds)} counted).`;
   document.getElementById('offline-earned').textContent = `+${fmt(info.earned)} Data`;
 
+  // A check-in should end with an obvious next move, so name the upgrades the
+  // new Data now covers. Without this the box only reports a number.
+  const picks = affordableHighlights(3);
+  const list = document.getElementById('offline-picks');
+  if (list) {
+    list.innerHTML = '';
+    if (picks.length === 0) {
+      list.innerHTML = '<li class="muted">Nothing affordable yet. Keep the exploit running.</li>';
+    } else {
+      picks.forEach((u) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="op-name">${u.name}</span>
+                        <span class="op-cost">${fmt(unitCost(u))}</span>`;
+        list.appendChild(li);
+      });
+    }
+  }
+
   const close = () => { modal.hidden = true; };
   document.getElementById('offline-close').addEventListener('click', close, { once: true });
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); }, { once: true });
+}
+
+/**
+ * The most useful upgrades the player can afford right now.
+ *
+ * Ranked by how much output each one adds per Data spent, which is the same
+ * measure bestValueUnit() uses, but returns several so the summary can show a
+ * shortlist rather than a single pick.
+ */
+function affordableHighlights(count) {
+  const mult = globalMultiplier();
+  const click = clickPower();
+  const scored = [];
+
+  UNIT_REGISTRY.forEach((unit) => {
+    if (unitMaxed(unit)) return;
+    const cost = unitCost(unit);
+    if (cost > state.data) return;
+
+    let gain;
+    switch (unit.kind) {
+      case 'click': gain = unit.eff * mult; break;
+      case 'auto': gain = unit.eff * click * mult; break;
+      case 'idle': gain = unit.eff * mult; break;
+      case 'mult': gain = Math.max(dataPerSecond(), 1) * unit.eff * 0.5; break;
+      case 'cost': gain = Math.max(state.data, cost) * unit.eff * 0.01; break;
+      default: gain = cost * 0.0005;
+    }
+    scored.push({ unit, score: cost / (gain + 1e-12) });
+  });
+
+  scored.sort((a, b) => a.score - b.score);
+  return scored.slice(0, count).map((s) => s.unit);
 }
 
 /** Fill in things that only need doing once. */
@@ -72,20 +124,34 @@ function buildStaticChrome() {
     btn.addEventListener('click', () => setScreen(btn.dataset.screen));
   });
 
-  document.getElementById('btn-prestige-cloud')?.addEventListener('click', () => {
+  document.getElementById('btn-prestige-cloud')?.addEventListener('click', async () => {
     if (!canAscend()) return;
-    const ok = window.confirm(
-      `Ascend into the Cloud?\n\nYou will gain ${pendingExabytes()} Exabytes.\nData and normal upgrades reset.`
+    const ok = await askConfirm(
+      'Ascend into the Cloud?',
+      `You will gain ${pendingExabytes()} Exabytes. Data and normal upgrades reset.`,
+      'Ascend'
     );
     if (ok) ascend('cloud');
   });
 
-  document.getElementById('btn-prestige-grid')?.addEventListener('click', () => {
+  document.getElementById('btn-prestige-grid')?.addEventListener('click', async () => {
     if (!canAscend()) return;
-    const ok = window.confirm(
-      `Seize the Grid?\n\nYou will gain ${pendingExabytes()} Grid Nodes.\nData and normal upgrades reset.`
+    const ok = await askConfirm(
+      'Seize the Grid?',
+      `You will gain ${pendingExabytes()} Grid Nodes. Data and normal upgrades reset.`,
+      'Seize'
     );
     if (ok) ascend('grid');
+  });
+
+  document.getElementById('btn-escape')?.addEventListener('click', async () => {
+    if (!canEscape()) return;
+    const ok = await askConfirm(
+      'Escape the grid?',
+      `You will gain ${pendingEscapes()} Charge${pendingEscapes() === 1 ? '' : 's'}, and every Charge doubles all Data forever. Data, upgrades and both prestige paths reset.`,
+      'Escape'
+    );
+    if (ok) escape();
   });
 
   const heatPanel = document.getElementById('heat-panel');

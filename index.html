@@ -13,6 +13,8 @@
 <link rel="stylesheet" href="css/modern.css">
 <link rel="stylesheet" href="css/hologram.css">
 <link rel="stylesheet" href="css/glitch.css">
+<link rel="stylesheet" href="css/phase-progress.css">
+<link rel="stylesheet" href="css/bridge.css">
 <link rel="stylesheet" href="css/ending.css">
 </head>
 <body>
@@ -76,6 +78,16 @@
         <span class="stat-label">UPTIME</span>
         <span class="stat-value" id="stat-clock">00:00</span>
       </div>
+    </div>
+
+    <!-- Progress to the next phase. The whole game is a climb, so the goal
+         belongs in the header rather than only in the side rail. -->
+    <div class="hud-gate" id="hud-gate">
+      <div class="hud-gate-head">
+        <span class="hud-gate-label" id="hud-gate-label">NEXT</span>
+        <span class="hud-gate-pct" id="hud-gate-pct">0%</span>
+      </div>
+      <div class="hud-gate-bar"><div class="hud-gate-fill" id="hud-gate-fill"></div></div>
     </div>
 
     <nav class="hud-nav">
@@ -150,6 +162,12 @@
           <span>Affordable only</span>
         </label>
         <button class="btn-ghost" id="btn-buy-best">Buy best</button>
+        <div class="buy-mult" id="buy-mult">
+          <button class="buy-mult-btn is-active" data-mult="1">×1</button>
+          <button class="buy-mult-btn" data-mult="10">×10</button>
+          <button class="buy-mult-btn" data-mult="100">×100</button>
+          <button class="buy-mult-btn" data-mult="max">MAX</button>
+        </div>
       </div>
     </div>
     <div class="sub-list" id="sub-list"></div>
@@ -166,6 +184,16 @@
       </div>
       <p class="muted small" id="prestige-warn">Ascending resets Data and normal upgrades.</p>
     </div>
+
+    <section class="escape-panel" id="escape-panel" hidden>
+      <div class="escape-head">
+        <h3>Escape <span class="cur" id="cur-escape">0 Charges</span></h3>
+        <p class="muted small" id="escape-line">—</p>
+      </div>
+      <button class="btn-primary btn-escape" id="btn-escape" disabled>ESCAPE</button>
+      <p class="muted small">Escape wipes Data, both prestige paths and every upgrade.
+        Each Charge doubles all Data forever.</p>
+    </section>
 
     <div class="prestige-paths">
       <section class="path" id="path-cloud">
@@ -198,6 +226,20 @@
         <span class="setting-value" id="setting-autosave">every 15s</span>
       </div>
       <div class="setting">
+        <span>Sound</span>
+        <label class="toggle">
+          <input type="checkbox" id="toggle-sound">
+          <span>Music</span>
+        </label>
+      </div>
+      <div class="setting">
+        <span>Music volume</span>
+        <label class="volume">
+          <input type="range" id="music-volume" min="0" max="100" step="5" value="45">
+          <span class="volume-value" id="music-volume-value">45%</span>
+        </label>
+      </div>
+      <div class="setting">
         <span>Wipe save</span>
         <button class="btn-danger" id="btn-wipe">Delete everything</button>
       </div>
@@ -218,13 +260,32 @@
     <div class="toast-text" id="toast-text"></div>
   </div>
 
+  <!-- ================= PHASE BANNER ================= -->
+  <div class="phase-banner" id="phase-banner" aria-live="polite"></div>
+
   <!-- ================= OFFLINE SUMMARY ================= -->
   <div class="modal" id="offline-modal" hidden>
     <div class="modal-card">
       <h3>While you were gone</h3>
       <p class="muted" id="offline-time">—</p>
       <p class="offline-earned" id="offline-earned">+0 Data</p>
+      <div class="offline-next">
+        <h4>Ready to buy</h4>
+        <ul class="offline-picks" id="offline-picks"></ul>
+      </div>
       <button class="btn-primary" id="offline-close">Resume</button>
+    </div>
+  </div>
+
+  <!-- ================= CONFIRM DIALOG ================= -->
+  <div class="modal" id="confirm-modal" hidden>
+    <div class="modal-card">
+      <h3 id="confirm-title">Are you sure?</h3>
+      <p class="muted" id="confirm-body">—</p>
+      <div class="confirm-actions">
+        <button class="btn-primary" id="confirm-yes">Confirm</button>
+        <button class="btn-ghost" id="confirm-no">Cancel</button>
+      </div>
     </div>
   </div>
 </div>
@@ -255,6 +316,7 @@
 <script src="js/prestige.js"></script>
 <script src="js/ending.js"></script>
 <script src="js/narrative.js"></script>
+<script src="js/audio.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/phases.js"></script>
 <script src="js/title.js"></script>

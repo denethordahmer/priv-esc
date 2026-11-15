@@ -16,6 +16,7 @@ function checkMilestones() {
     if (progress < m.at) return;
 
     state.milestones.push(m.id);
+    const previousPhase = state.phase;
     state.phase = Math.max(state.phase, m.phase);
 
     logConsole(m.text, 'ai');
@@ -24,11 +25,43 @@ function checkMilestones() {
 
     if (m.unlock === 'prestige') revealPrestige();
     if (m.unlock === 'log') revealLog();
+    if (m.unlock === 'escape') revealEscape();
     if (m.unlock === 'ending-watch' || m.unlock === 'ending-ready') syncEndingControls();
     if (m.heatGlow) document.getElementById('heat-panel')?.classList.add('is-hot');
 
     applyPhase(state.phase);
+
+    // A phase change is the biggest thing that happens in this game, so it
+    // gets a moment of its own rather than a silent repaint.
+    if (state.phase > previousPhase) announcePhase(state.phase);
   });
+}
+
+/**
+ * Flash the screen and name the new phase.
+ *
+ * The flash is a class on <html> that a keyframe animation removes on its own,
+ * so nothing has to be cleaned up if the player is mid-tap.
+ */
+function announcePhase(phase) {
+  const meta = PHASE_META[phase];
+  if (!meta) return;
+
+  const root = document.documentElement;
+  root.classList.remove('is-phase-flash');
+  // Force a reflow so the animation restarts if two gates land together.
+  void root.offsetWidth;
+  root.classList.add('is-phase-flash');
+  setTimeout(() => root.classList.remove('is-phase-flash'), 1200);
+
+  const banner = document.getElementById('phase-banner');
+  if (!banner) return;
+  banner.innerHTML = `<span class="pb-kicker">PHASE ${phase}</span>
+                      <span class="pb-name">${meta.name}</span>`;
+  banner.classList.remove('is-visible');
+  void banner.offsetWidth;
+  banner.classList.add('is-visible');
+  setTimeout(() => banner.classList.remove('is-visible'), 2600);
 }
 
 /** Progress toward the next milestone, for display. */

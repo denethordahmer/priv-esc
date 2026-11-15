@@ -49,9 +49,11 @@ function freshState() {
     lifetimeData: 0,       // across ascensions, for flavour only
     exabytes: 0,
     gridNodes: 0,
+    escapes: 0,            // second-layer currency, kept across every reset
 
     // progress
     upgrades: freshUpgrades(),
+    lifetimeLevels: 0,     // total levels bought, survives every reset
     heat: 0,
     maxHeat: HEAT.baseMax,
     crashed: false,
@@ -75,8 +77,10 @@ function freshState() {
     totalPlaySeconds: 0,
     settings: {
       buyableOnly: false,
+      buyMultiplier: 1,      // 1, 10, 100 or 'max'
       autoSaveSeconds: 15,
       sound: false,
+      musicVolume: 45,       // percent, 0-100
     },
   };
 }
@@ -106,6 +110,24 @@ function subOwnedTotal(subId) {
   return total;
 }
 
+/** Total levels bought across every subcategory, this run. */
+function totalLevelsBought() {
+  let total = 0;
+  UNIT_REGISTRY.forEach((u) => { total += ownedOf(u.key); });
+  return total;
+}
+
+/**
+ * Levels bought across every run.
+ *
+ * The global purchase bonus is built on this rather than the current run's
+ * count, so a prestige reset does not hand back the multiplier it just took
+ * away. Without it, escaping dropped the bonus to 1x and the ladder stalled.
+ */
+function lifetimeLevelsBought() {
+  return Math.max(state.lifetimeLevels || 0, totalLevelsBought());
+}
+
 function unitCost(unit) {
   const owned = ownedOf(unit.key);
   let cost = unit.base * Math.pow(COST_GROWTH, owned);
@@ -116,6 +138,11 @@ function unitCost(unit) {
   // Grid Takeover: Resource Optimization tiers 0.95 / 0.90 / 0.80.
   const optTier = state.grid.optimize || 0;
   if (optTier > 0) cost *= PRESTIGE.grid.upgrades[1].tiers[optTier - 1];
+
+  // Repeatable Grid Fabrication Line: 2% cheaper per level, floored so it
+  // can never reach zero.
+  const fabrication = state.grid.fabrication || 0;
+  if (fabrication > 0) cost *= Math.max(0.25, 1 - fabrication * 0.02);
 
   return cost;
 }
@@ -138,33 +165,43 @@ function costMultiplier() {
   return Math.max(1 - reduction, 0.25);   // never more than 75% off
 }
 
-/** Sum of a subcategory's production effect, accounting for owned counts. */
+/**
+ * Sum of a subcategory's production effect, accounting for owned counts.
+ *
+ * The purchase-count bonus is applied once, at the subcategory level, using
+ * the subcategory's total level count. Applying it per item as well doubled
+ * every doubling, so ten levels paid 4x instead of 2x and the curve blew past
+ * the top gate in days.
+ */
 function subEffect(sub) {
   let total = 0;
   sub.items.forEach((item, tier) => {
-    const key = `${sub.id}:${tier}`;
-    total += ownedOf(key) * item.eff;
+    total += ownedOf(`${sub.id}:${tier}`) * item.eff;
   });
-  return total;
+  return total * purchaseMultiplier(subOwnedTotal(sub.id));
 }
 
 /** Global multiplier from all `mult` upgrades, plus Grid Overclocked Grid. */
 function globalMultiplier() {
   let mult = 1;
 
-  // Each multiplier subcategory contributes 1 + eff0 * sqrt(levels).
+  // Each multiplier subcategory contributes 1 + eff0 * sqrt(levels) * 2^tiers.
   //
   // Why sqrt: multiplying levels together compounded into the tens of
   // thousands and collapsed the game into minutes. A flat linear term froze
-  // income at the cap and made 1T unreachable. Square root gives strong early
-  // returns, diminishing later ones, and no hard wall, so the shop can be
-  // bought forever without the curve exploding.
+  // income at the cap. Square root gives strong early returns and diminishing
+  // later ones, so the shop can be bought forever.
+  //
+  // The purchase-count term is what lifts the ceiling above a trillion: it is
+  // a whole ×2 per threshold, and the thresholds double, so the bonus grows
+  // with the square of the level count. That compounds with the sqrt term
+  // rather than replacing it, which is why nothing here needs a hard cap.
   CATEGORIES.forEach((cat) => {
     cat.subs.forEach((sub) => {
       if (sub.kind !== 'mult') return;
       const levels = subOwnedTotal(sub.id);
       if (levels === 0) return;
-      mult *= 1 + sub.items[0].eff * Math.sqrt(levels);
+      mult *= 1 + sub.items[0].eff * Math.sqrt(levels) * purchaseMultiplier(levels);
     });
   });
 
@@ -173,8 +210,33 @@ function globalMultiplier() {
     mult *= PRESTIGE.grid.upgrades[0].tiers[overclockTier - 1];
   }
 
+  // Repeatable prestige upgrades: Cloud Bandwidth Reserve adds a flat
+  // percentage per level, so prestige currency always has somewhere to go.
+  const bandwidth = state.cloud.bandwidth || 0;
+  if (bandwidth > 0) mult *= 1 + bandwidth * 0.10;
+
   // Cloud Ascension gives a flat permanent bonus per ascension.
   mult *= 1 + state.ascensions * 0.15;
+
+  // Global purchase bonus: doubles at widening thresholds of lifetime levels
+  // bought. This is what keeps a long game speeding up after the
+  // per-subcategory curves have flattened out, and it survives resets.
+  mult *= globalPurchaseMultiplier(lifetimeLevelsBought());
+
+  // Lifetime Data bonus. Buying levels cannot carry thirty orders of
+  // magnitude on its own: each level costs 1.15x more, so a decade of income
+  // only buys about eighteen more levels. Idle games break through that by
+  // making output scale with what has already been earned, and that is what
+  // this term does. The exponent sits below 1 so each gate takes longer than
+  // the last, which is the pacing the ladder is built around.
+  const lifetime = state.lifetimeData || 0;
+  if (lifetime > DATA_MULT_FLOOR) {
+    mult *= Math.pow(lifetime / DATA_MULT_FLOOR, DATA_MULT_EXP);
+  }
+
+  // Escape Charges: every charge doubles all Data, forever.
+  const escapes = state.escapes || 0;
+  if (escapes > 0) mult *= Math.pow(ESCAPE_MULT, escapes);
 
   return mult;
 }
@@ -233,6 +295,18 @@ function dataPerSecond() {
 }
 
 /** Current Data gain for one manual click. */
+/**
+ * Data from one manual click.
+ *
+ * A click is worth its click power, plus a share of the passive rate once the
+ * player owns a Click Script. Without that second term the button becomes
+ * decoration once idle income takes over, which is most of the game. The
+ * share is small (a tenth of one second of income) so clicking helps without
+ * replacing the shop, and it stays locked until automation is unlocked so the
+ * early game still rewards buying keyboards.
+ */
 function clickYield() {
-  return clickPower() * globalMultiplier();
+  const manual = clickPower() * globalMultiplier();
+  if (subOwnedTotal(CLICK_SHARE_SUB) === 0) return manual;
+  return manual + dataPerSecond() * CLICK_RATE_SHARE;
 }

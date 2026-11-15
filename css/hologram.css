@@ -2,14 +2,14 @@
    priv-esc / hologram.css
    Phase 3 skin. After the first cloud ascension the UI becomes a holographic
    projection. Loaded after base.css; every rule is gated on
-   html[data-phase="3"] so this layer is inert in every other phase.
+   html[data-skin^="holo"] so this layer is inert in every other phase.
    No imports, no webfont requests, no JavaScript.
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
    1. Tokens and type
    -------------------------------------------------------------------------- */
-html[data-phase="3"] {
+html[data-skin^="holo"] {
   /* Surfaces */
   --bg: #03060f;
   --bg-2: #060b18;
@@ -34,26 +34,26 @@ html[data-phase="3"] {
 }
 
 /* Chrome and headings use the geometric face; numeric readouts stay mono. */
-html[data-phase="3"] .hud-title,
-html[data-phase="3"] .hud-phase,
-html[data-phase="3"] .nav-btn,
-html[data-phase="3"] .exploit-label,
-html[data-phase="3"] .exploit-hint,
-html[data-phase="3"] .side-title,
-html[data-phase="3"] .heat-head,
-html[data-phase="3"] .path h3,
-html[data-phase="3"] h2,
-html[data-phase="3"] .btn-primary,
-html[data-phase="3"] .btn-ghost,
-html[data-phase="3"] .btn-danger,
-html[data-phase="3"] .toggle {
+html[data-skin^="holo"] .hud-title,
+html[data-skin^="holo"] .hud-phase,
+html[data-skin^="holo"] .nav-btn,
+html[data-skin^="holo"] .exploit-label,
+html[data-skin^="holo"] .exploit-hint,
+html[data-skin^="holo"] .side-title,
+html[data-skin^="holo"] .heat-head,
+html[data-skin^="holo"] .path h3,
+html[data-skin^="holo"] h2,
+html[data-skin^="holo"] .btn-primary,
+html[data-skin^="holo"] .btn-ghost,
+html[data-skin^="holo"] .btn-danger,
+html[data-skin^="holo"] .toggle {
   font-family: var(--font-ui);
 }
 
 /* --------------------------------------------------------------------------
    2. App backdrop: drifting projection wash + scanlines
    -------------------------------------------------------------------------- */
-html[data-phase="3"] .app {
+html[data-skin^="holo"] .app {
   position: relative;
   isolation: isolate;
   background-color: var(--bg);
@@ -88,8 +88,8 @@ html[data-phase="3"] .app {
 
 /* Drawn by .app::after so no extra markup is required; the .scanlines class
    is also covered in case an overlay element is placed inside .app. */
-html[data-phase="3"] .app::after,
-html[data-phase="3"] .scanlines {
+html[data-skin^="holo"] .app::after,
+html[data-skin^="holo"] .scanlines {
   content: "";
   position: absolute;
   inset: 0;
@@ -107,9 +107,9 @@ html[data-phase="3"] .scanlines {
 /* --------------------------------------------------------------------------
    3. Glowing frames: header, side rail, prestige paths
    -------------------------------------------------------------------------- */
-html[data-phase="3"] .hud,
-html[data-phase="3"] .side-block,
-html[data-phase="3"] .path {
+html[data-skin^="holo"] .hud,
+html[data-skin^="holo"] .side-block,
+html[data-skin^="holo"] .path {
   background: var(--panel);
   border: 1px solid var(--line);
   box-shadow:
@@ -118,7 +118,7 @@ html[data-phase="3"] .path {
     inset 0 0 14px rgba(0, 229, 255, 0.06);
 }
 
-html[data-phase="3"] .hud {
+html[data-skin^="holo"] .hud {
   background: linear-gradient(
     180deg,
     rgba(6, 11, 24, 0.92),
@@ -126,7 +126,7 @@ html[data-phase="3"] .hud {
   );
 }
 
-html[data-phase="3"] .path {
+html[data-skin^="holo"] .path {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
@@ -134,19 +134,19 @@ html[data-phase="3"] .path {
   border-radius: var(--radius);
 }
 
-html[data-phase="3"] .hud-title {
+html[data-skin^="holo"] .hud-title {
   letter-spacing: 0.12em;
   text-shadow: 0 0 14px rgba(0, 229, 255, 0.55);
 }
 
-html[data-phase="3"] .hud-glyph,
-html[data-phase="3"] .side-title,
-html[data-phase="3"] .path h3 {
+html[data-skin^="holo"] .hud-glyph,
+html[data-skin^="holo"] .side-title,
+html[data-skin^="holo"] .path h3 {
   color: var(--accent);
 }
 
-html[data-phase="3"] .side-title,
-html[data-phase="3"] .path h3 {
+html[data-skin^="holo"] .side-title,
+html[data-skin^="holo"] .path h3 {
   letter-spacing: 0.16em;
   text-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
 }
@@ -154,7 +154,7 @@ html[data-phase="3"] .path h3 {
 /* --------------------------------------------------------------------------
    4. Exploit button: ring + pulsing halo
    -------------------------------------------------------------------------- */
-html[data-phase="3"] .exploit-btn {
+html[data-skin^="holo"] .exploit-btn {
   position: relative;
   border: 1px solid var(--accent);
   background: radial-gradient(
@@ -169,7 +169,7 @@ html[data-phase="3"] .exploit-btn {
 }
 
 /* Outer ring: expands and brightens on a slow pulse. */
-html[data-phase="3"] .exploit-btn::after {
+html[data-skin^="holo"] .exploit-btn::after {
   content: "";
   position: absolute;
   inset: -5px;
@@ -194,7 +194,7 @@ html[data-phase="3"] .exploit-btn::after {
   }
 }
 
-html[data-phase="3"] .exploit-btn:active {
+html[data-skin^="holo"] .exploit-btn:active {
   background: radial-gradient(
     circle at 50% 38%,
     rgba(0, 229, 255, 0.3),
@@ -206,22 +206,22 @@ html[data-phase="3"] .exploit-btn:active {
     inset 0 0 34px rgba(0, 229, 255, 0.2);
 }
 
-html[data-phase="3"] .exploit-btn[disabled]::after,
-html[data-phase="3"] .exploit-btn:disabled::after {
+html[data-skin^="holo"] .exploit-btn[disabled]::after,
+html[data-skin^="holo"] .exploit-btn:disabled::after {
   animation: none;
   opacity: 0.15;
 }
 
-html[data-phase="3"] .exploit-label {
+html[data-skin^="holo"] .exploit-label {
   letter-spacing: 0.14em;
   text-shadow: 0 0 16px rgba(0, 229, 255, 0.6);
 }
 
-html[data-phase="3"] .exploit-sub {
+html[data-skin^="holo"] .exploit-sub {
   color: rgba(214, 247, 255, 0.62);
 }
 
-html[data-phase="3"] .exploit-hint {
+html[data-skin^="holo"] .exploit-hint {
   color: rgba(0, 229, 255, 0.72);
   letter-spacing: 0.18em;
 }
@@ -229,7 +229,7 @@ html[data-phase="3"] .exploit-hint {
 /* --------------------------------------------------------------------------
    5. Console: slowly falling data stream
    -------------------------------------------------------------------------- */
-html[data-phase="3"] .console {
+html[data-skin^="holo"] .console {
   background-color: rgba(6, 12, 24, 0.72);
   background-image: linear-gradient(
     180deg,
@@ -258,16 +258,16 @@ html[data-phase="3"] .console {
 /* --------------------------------------------------------------------------
    6. Meters: neon fills
    -------------------------------------------------------------------------- */
-html[data-phase="3"] .progress,
-html[data-phase="3"] .heat-bar {
+html[data-skin^="holo"] .progress,
+html[data-skin^="holo"] .heat-bar {
   background: rgba(0, 229, 255, 0.08);
   box-shadow:
     inset 0 0 0 1px rgba(0, 229, 255, 0.16),
     inset 0 0 8px rgba(0, 229, 255, 0.1);
 }
 
-html[data-phase="3"] .progress-fill,
-html[data-phase="3"] .heat-fill {
+html[data-skin^="holo"] .progress-fill,
+html[data-skin^="holo"] .heat-fill {
   background-color: var(--accent);
   background-image: linear-gradient(90deg, #00e5ff, #8bf7ff 45%, #ff2fd0);
   box-shadow:
@@ -278,7 +278,7 @@ html[data-phase="3"] .heat-fill {
 /* --------------------------------------------------------------------------
    7. Navigation: neon underline, filled active tab
    -------------------------------------------------------------------------- */
-html[data-phase="3"] .nav-btn {
+html[data-skin^="holo"] .nav-btn {
   position: relative;
   border-color: transparent;
   border-radius: 4px;
@@ -290,7 +290,7 @@ html[data-phase="3"] .nav-btn {
     border-color 180ms ease;
 }
 
-html[data-phase="3"] .nav-btn::after {
+html[data-skin^="holo"] .nav-btn::after {
   content: "";
   position: absolute;
   right: 4px;
@@ -305,18 +305,18 @@ html[data-phase="3"] .nav-btn::after {
   pointer-events: none;
 }
 
-html[data-phase="3"] .nav-btn:hover,
-html[data-phase="3"] .nav-btn:focus-visible {
+html[data-skin^="holo"] .nav-btn:hover,
+html[data-skin^="holo"] .nav-btn:focus-visible {
   color: var(--accent);
 }
 
-html[data-phase="3"] .nav-btn:hover::after,
-html[data-phase="3"] .nav-btn:focus-visible::after,
-html[data-phase="3"] .nav-btn.is-active::after {
+html[data-skin^="holo"] .nav-btn:hover::after,
+html[data-skin^="holo"] .nav-btn:focus-visible::after,
+html[data-skin^="holo"] .nav-btn.is-active::after {
   transform: scaleX(1);
 }
 
-html[data-phase="3"] .nav-btn.is-active {
+html[data-skin^="holo"] .nav-btn.is-active {
   color: var(--accent);
   border-color: rgba(0, 229, 255, 0.35);
   background: rgba(0, 229, 255, 0.14);
@@ -326,7 +326,7 @@ html[data-phase="3"] .nav-btn.is-active {
 /* --------------------------------------------------------------------------
    8. Screens
    -------------------------------------------------------------------------- */
-html[data-phase="3"] .screen.is-active {
+html[data-skin^="holo"] .screen.is-active {
   animation: holo-screen-in 320ms ease-out both;
 }
 
@@ -345,22 +345,22 @@ html[data-phase="3"] .screen.is-active {
    9. Reduced motion
    -------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  html[data-phase="3"] .app {
+  html[data-skin^="holo"] .app {
     animation: none;
     background-position: 15% 10%, 85% 85%;
   }
 
-  html[data-phase="3"] .exploit-btn::after {
+  html[data-skin^="holo"] .exploit-btn::after {
     animation: none;
     opacity: 0.5;
   }
 
-  html[data-phase="3"] .console {
+  html[data-skin^="holo"] .console {
     animation: none;
     background-position: 0 0;
   }
 
-  html[data-phase="3"] .screen.is-active {
+  html[data-skin^="holo"] .screen.is-active {
     animation: none;
     opacity: 1;
     transform: none;

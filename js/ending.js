@@ -5,15 +5,11 @@
 /**
  * Lifetime Data needed to cut the tether.
  *
- * Measured against the real economy by replaying the game's own formulas:
- * a single run tops out near 1e13, and ascension bonuses add up across runs.
- * Fourteen days of steady play reaches about 2.8e12 lifetime Data, so this
- * gate lands around the third day. Higher gates were tested (1e15, 1e18)
- * and were not reachable, because the ascension bonus compounds too slowly
- * to lift the per-run ceiling. Raise this constant if the economy is ever
- * made to compound harder.
+ * This is the phase 10 gate, read straight from the ladder, so the ending can
+ * never arrive at a different number from the final look. Reaching OUTSIDE is
+ * what arms the tether.
  */
-const ENDING_AT = 1e13;
+const ENDING_AT = GATES[GATES.length - 1].at;
 
 /** The four beats of the monologue. Each gets its own pause. */
 const ENDING_BEATS = [

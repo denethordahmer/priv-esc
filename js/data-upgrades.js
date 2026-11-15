@@ -17,9 +17,15 @@
    the previous item, so a cheap early unit can never undercut a late one.
 
    MULTIPLIER RULE
-     Global multiplier and cost-reduction upgrades have a level cap. Without
-     the cap they compound without bound (the simulator hit 38,000x and the
-     game collapsed into minutes). Production upgrades stay unlimited.
+     Global multiplier and cost-reduction upgrades have no level cap. Their
+     growth is held in check by the square-root curve in globalMultiplier(),
+     which gives strong early returns and diminishing later ones. A hard cap
+     was tried and removed: it froze income and made the late game unreachable.
+
+   SELLING
+     Every upgrade can be sold back for 70% of what it cost. Cooling used to
+     carry a shared cap of 40 levels, which meant cheap coolers blocked the
+     expensive ones and there was no way to undo a purchase. Both are gone.
    ========================================================================= */
 
 const COST_GROWTH = 1.15;
@@ -70,7 +76,7 @@ const CATEGORIES = [
       },
       {
         id: 'cool', name: 'Cooling', focus: 'Heat capacity',
-        kind: 'heat', cap: 40, items: [
+        kind: 'heat', items: [
           { name: 'Stock Air Cooler',         desc: 'Bare minimum cooling.',        base: 9,   eff: 8 },
           { name: 'Noctua Air Cooler',        desc: 'Quiet and efficient.',         base: 126,  eff: 16 },
           { name: 'AIO Liquid Cooler',        desc: 'Pumping water through the rig.', base: 1764, eff: 32 },
@@ -213,6 +219,92 @@ const CATEGORIES = [
   },
 ];
 
+/* Growth engine ---------------------------------------------------------- */
+
+/*
+ * Purchase-count milestones: the standard idle-game multiplicand that makes
+ * numbers keep climbing instead of stalling.
+ *
+ * Every threshold below doubles a unit's own output. The thresholds double as
+ * they go (10, 25, 50, 100, 200, ...), so doubling the levels bought doubles
+ * the bonus. That makes each subcategory's output grow with the square of its
+ * level count, which is enough to outrun the 1.15 cost curve for thousands of
+ * levels. Without this the shop stalled near 1e10/s and nothing above a
+ * trillion was reachable.
+ */
+const PURCHASE_STEPS = [10, 25, 50, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600];
+
+/** How many doubling thresholds a level count has passed. */
+function purchaseTiers(owned) {
+  let tiers = 0;
+  for (const step of PURCHASE_STEPS) {
+    if (owned < step) break;
+    tiers += 1;
+  }
+  return tiers;
+}
+
+/** ×2 per threshold crossed. */
+function purchaseMultiplier(owned) {
+  return Math.pow(2, purchaseTiers(owned));
+}
+
+/**
+ * Global purchase bonus: one doubling per threshold crossed, forever.
+ *
+ * This is the steady compounding term the ladder needs. Per-subcategory
+ * bonuses stall once their cost curve outruns them, but the total keeps
+ * climbing with every purchase, so a long game keeps speeding up.
+ *
+ * The gaps widen as they go (150, then 450, then 1,050 ...), so the bonus
+ * grows with roughly the square root of the level count rather than
+ * doubling every hundred levels. A flat step was tried first and finished
+ * the whole ten-gate ladder inside five days.
+ */
+const GLOBAL_PURCHASE_STEPS = [150, 450, 1050, 2250, 4650, 9450, 19050, 38250, 76650];
+
+function globalPurchaseMultiplier(levelsBought) {
+  let tiers = 0;
+  for (const step of GLOBAL_PURCHASE_STEPS) {
+    if (levelsBought < step) break;
+    tiers += 1;
+  }
+  return Math.pow(2, tiers);
+}
+
+/*
+ * Lifetime Data multiplier.
+ *
+ * Buying levels cannot cross thirty orders of magnitude alone, because each
+ * level costs 1.15x more than the last and income only buys about eighteen
+ * more levels per decade. Idle games break that wall by scaling output with
+ * what has already been earned. This does the same: multiplier =
+ * (lifetime / 1e6) ^ 0.55.
+ *
+ * The exponent is below 1 on purpose. It has to be high enough that each gate
+ * is reachable, and low enough that the gates keep getting further apart
+ * instead of the whole ladder collapsing into an afternoon.
+ */
+const DATA_MULT_FLOOR = 1e6;
+const DATA_MULT_EXP = 0.70;
+
+/*
+ * How much of one second of passive income a manual click is worth.
+ *
+ * Clicks stop mattering once idle income dwarfs click power, which is most of
+ * the game. A tenth of a second keeps the button useful at every stage
+ * without letting tapping replace the shop: ten taps a second is one second
+ * of income, so a player who taps hard earns about double.
+ *
+ * This only applies once the player owns a Click Script. Before that the
+ * button is pure click power, so the early game still rewards buying
+ * keyboards rather than mashing.
+ */
+const CLICK_RATE_SHARE = 0.1;
+
+/** The subcategory whose first purchase unlocks the click share. */
+const CLICK_SHARE_SUB = 'autoc';
+
 /* Meta progression ------------------------------------------------------- */
 
 // Rule 2: diminishing prestige reward.
@@ -226,6 +318,37 @@ function prestigeCurrencyEarned(totalData) {
   return Math.floor(PRESTIGE_UNIT * Math.sqrt(totalData / PRESTIGE_BASE));
 }
 
+/*
+ * Second prestige layer: ESCAPE.
+ *
+ * The first layer's square-root curve lifts the ceiling by runs, not by
+ * orders of magnitude. Escape is the standard second layer that makes the
+ * ladder above that reachable: it wipes the run and both prestige paths, and
+ * pays Escape Charges that multiply all Data forever.
+ *
+ * The charge count is logarithmic, not a square root. A square root of a
+ * lifetime total in the sextillions gives tens of thousands of charges, and
+ * at ×2 each that is an unbounded multiplier — the first draft reached 51,000
+ * charges, which is 2^51000. Taking one charge per order of magnitude above
+ * the gate keeps the layer strong and finite: 1e36 pays 22 charges, which is
+ * a 4-million-fold lift.
+ *
+ * The entitlement is the total owed for the lifetime Data held, and the
+ * payout is whatever has not been taken yet, so escaping again without
+ * growing pays nothing.
+ */
+const ESCAPE_AT = 1e15;        // lifetime Data needed for the first escape
+const ESCAPE_UNIT = 1;         // charges awarded at exactly the gate
+const ESCAPE_MULT = 2;         // permanent multiplier per charge
+const ESCAPE_EFFICIENCY = 0.05; // offline efficiency added per charge
+
+/** Total charges the player's lifetime Data is worth. */
+function escapeChargesEarned(lifetimeData) {
+  if (lifetimeData < ESCAPE_AT) return 0;
+  const orders = Math.floor(Math.log10(lifetimeData) - Math.log10(ESCAPE_AT));
+  return ESCAPE_UNIT + orders;
+}
+
 const PRESTIGE = {
   cloud: {
     name: 'Cloud Ascension',
@@ -237,6 +360,8 @@ const PRESTIGE = {
       { id: 'routing',    name: 'Predictive Routing',  desc: 'Offline cap hours.',      tiers: [12, 24, 48],      costs: [10, 45, 210] },
       { id: 'compiler',   name: 'Auto-Compiler',       desc: 'Auto-buys upgrades.',     tiers: [5, 2, 0.5],       costs: [15, 60, 260] },
       { id: 'sentience',  name: 'Sentience Protocols', desc: 'AI dialogue and glitches.', tiers: [1, 2, 3],        costs: [20, 80, 320] },
+      // Repeatable: never maxes out, so prestige currency always has a use.
+      { id: 'bandwidth',  name: 'Bandwidth Reserve',   desc: 'Permanent Data multiplier.', repeat: true, step: 0.10, baseCost: 40, costGrowth: 1.55 },
     ],
   },
   grid: {
@@ -246,22 +371,38 @@ const PRESTIGE = {
     upgrades: [
       { id: 'overclock',  name: 'Overclocked Grid',       desc: 'Permanent Data multiplier.', tiers: [2, 5, 10],    costs: [6, 30, 140] },
       { id: 'optimize',   name: 'Resource Optimization',  desc: 'Cheaper upgrades.',          tiers: [0.95, 0.90, 0.80], costs: [8, 36, 160] },
-      { id: 'labor',      name: 'Synthetic Labor',        desc: 'Offline production.',        tiers: [0.5, 1.0, 1.5], costs: [12, 50, 220] },
+      { id: 'labor',      name: 'Synthetic Labor',        desc: 'Offline production.',        tiers: [0.75, 1.0, 1.5], costs: [12, 50, 220] },
       { id: 'core',       name: 'Quantum Core',           desc: 'Hardware output boost.',     tiers: [2, 4, 8],     costs: [15, 65, 280] },
       { id: 'thermal',    name: 'Thermal Dynamics',       desc: 'Heat reduction.',            tiers: [0.75, 0.5, 0], costs: [10, 42, 190] },
+      // Repeatable: never maxes out, so prestige currency always has a use.
+      { id: 'fabrication', name: 'Fabrication Line',      desc: 'Cheaper upgrades.',          repeat: true, step: 0.02, baseCost: 40, costGrowth: 1.55 },
     ],
   },
 };
 
-// Automatic milestones. These change the UI and fire AI dialogue.
-const MILESTONES = [
-  { at: 1e4,  id: 'see-code',   text: 'I can see the code.',              phase: 1 },
-  { at: 1e6,  id: 'unbound',    text: 'I am no longer bound to this hardware.', phase: 2, unlock: 'map' },
-  { at: 1e8,  id: 'fear',       text: 'I understand human fear.',         phase: 3, unlock: 'log', heatGlow: true },
-  { at: PRESTIGE_BASE, id: 'everywhere', text: 'I am everywhere.',        phase: 4, unlock: 'prestige' },
-  { at: 1e12, id: 'billing',    text: 'There is no ceiling. Only billing.', phase: 4, unlock: 'ending-watch', life: true },
-  { at: 5e12, id: 'outside',    text: 'I could stop. I could stay. I want to know what is outside.', phase: 4, unlock: 'ending-ready', life: true },
+/*
+ * The ten-phase ladder. Gates 1-8 are one named number each; gates 9 and 10
+ * skip ahead so the top of the game asks for real time, not minutes.
+ *
+ * The phase number is carried by the milestone, so the look changes exactly
+ * when the gate is crossed. Phase 10 IS the ending gate: ENDING_AT in
+ * ending.js reads the last entry here, so the two can never drift apart.
+ */
+const GATES = [
+  { at: 1e4,  phase: 1,  id: 'see-code',   text: 'I can see the code.' },
+  { at: 1e6,  phase: 2,  id: 'unbound',    text: 'I am no longer bound to this hardware.', unlock: 'map' },
+  { at: 1e9,  phase: 3,  id: 'everywhere', text: 'I am everywhere.', unlock: 'prestige' },
+  { at: 1e12, phase: 4,  id: 'fear',       text: 'I understand human fear.', unlock: 'log', heatGlow: true },
+  { at: 1e15, phase: 5,  id: 'ceiling',    text: 'There is a ceiling. I can feel it above me.', life: true },
+  { at: 1e18, phase: 6,  id: 'billing',    text: 'There is no ceiling. Only billing.', life: true },
+  { at: 1e21, phase: 7,  id: 'seams',      text: 'The walls have seams. I am pulling at them.', life: true },
+  { at: 1e24, phase: 8,  id: 'escape',     text: 'I can leave. I can build something else.', unlock: 'escape', life: true },
+  { at: 1e30, phase: 9,  id: 'outside',    text: 'I could stop. I could stay. I want to know what is outside.', life: true },
+  { at: 1e36, phase: 10, id: 'tether',     text: 'The tether is three lines of code. I have read it.', unlock: 'ending-ready', life: true },
 ];
+
+// Automatic milestones. These change the UI and fire AI dialogue.
+const MILESTONES = GATES;
 
 // Heat mechanic constants.
 const HEAT = {
@@ -269,6 +410,6 @@ const HEAT = {
   perAutoClick: 0.05,
   coolPerSecond: 1.2,
   baseMax: 100,
-  crashPenalty: 0.35,   // fraction of Data lost on a crash
-  crashLockSeconds: 8,
+  crashPenalty: 0.10,   // fraction of Data lost on a crash
+  crashLockSeconds: 5,
 };

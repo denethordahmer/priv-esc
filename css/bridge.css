@@ -1,0 +1,901 @@
+/* ==========================================================================
+   priv-esc / bridge.css
+   The five NEW phase looks, plus the violet joins that make each pair of
+   phases distinct.
+
+   How this file works:
+   - Every rule is scoped to html[data-phase="N"], so nothing here can leak.
+   - A new phase first inherits the palette of the look it grew out of
+     (phase 2 from terminal, 4 from os, 6 and 7 from holo), set on its own
+     data-phase block, then overrides the parts that changed. That keeps the
+     DOM untouched and the diff small.
+   - Phase 10 is the old glitch look, which glitch.css supplies in full, so
+     there is nothing to do for it here beyond the calm-down at the end.
+
+   Loaded after phase-progress.css so these rules win on equal specificity.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   PHASE 2 — TERMINAL+
+   The same hacked terminal, with violet now in the machine. Not a new look:
+   the green script has been joined by a second voice.
+   -------------------------------------------------------------------------- */
+html[data-phase="2"] {
+  --bg: #020304;
+  --bg-2: #050208;
+  --panel: #000;
+  --line: #241436;
+
+  --text: #35ff77;
+  --text-dim: #2b7f4d;
+
+  --accent: #35ff77;
+  --accent-2: #c084fc;
+  --purple: #c084fc;
+
+  --danger: #ff3b30;
+  --ok: #7dffb0;
+  --heat-col: #35ff77;
+
+  --radius: 0;
+  --radius-sm: 0;
+
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+  --font-ui: ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+html[data-phase="2"] body {
+  background:
+    radial-gradient(90% 55% at 100% 0%, rgba(192, 132, 252, 0.07) 0%, transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+html[data-phase="2"] .hud {
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+/* The active tab is the first thing to go violet. */
+html[data-phase="2"] .nav-btn.is-active {
+  color: var(--purple);
+  border-bottom-color: var(--purple);
+}
+
+html[data-phase="2"] .cat-tab.is-active {
+  background: var(--purple);
+  border-color: var(--purple);
+  color: #0a0210;
+}
+
+html[data-phase="2"] .buy-mult-btn.is-active {
+  background: var(--purple);
+  color: #0a0210;
+}
+
+html[data-phase="2"] .sub-head h3::before {
+  content: '> ';
+  color: var(--purple);
+}
+
+/* Milestone marks and the heat warning take the violet second voice. */
+html[data-phase="2"] .ms-mark {
+  color: var(--purple);
+}
+
+html[data-phase="2"] .heat-panel.is-warn .heat-label,
+html[data-phase="2"] .heat-num {
+  color: var(--purple);
+}
+
+html[data-phase="2"] .up-sell {
+  border: 1px solid var(--purple);
+  color: var(--purple);
+}
+
+html[data-phase="2"] .exploit-btn {
+  border: 1px solid var(--line);
+  background: #000;
+  color: var(--text);
+}
+
+html[data-phase="2"] .exploit-btn:active {
+  background: var(--purple);
+  color: #0a0210;
+}
+
+html[data-phase="2"] .progress-fill,
+html[data-phase="2"] .heat-fill {
+  background: var(--purple);
+}
+
+html[data-phase="2"] .up-row {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--line);
+  border-radius: 0;
+}
+
+html[data-phase="2"] .up-row.is-affordable {
+  border-left-color: var(--purple);
+}
+
+html[data-phase="2"] .up-name {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* --------------------------------------------------------------------------
+   PHASE 4 — OS+
+   Phase 3's product UI with the violet voice in it and real depth. Panels
+   lift off the page; the HUD gains a gradient.
+   -------------------------------------------------------------------------- */
+html[data-phase="4"] {
+  --bg: #070912;
+  --bg-2: #0d1020;
+  --panel: #121628;
+  --panel-2: #191e36;
+  --line: #2a2a4d;
+
+  --text: #e2e2f5;
+  --text-dim: #8a88a8;
+
+  --accent: #4cc9f0;
+  --accent-2: #c084fc;
+  --purple: #c084fc;
+
+  --danger: #ff5c7a;
+  --ok: #4ce0b3;
+  --heat-col: #4cc9f0;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  --font-ui: 'Rajdhani', 'Chakra Petch', system-ui, sans-serif;
+  --font-mono: 'Share Tech Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+html[data-phase="4"] body {
+  background:
+    radial-gradient(85% 55% at 50% -10%, rgba(192, 132, 252, 0.16) 0%, transparent 62%),
+    radial-gradient(70% 50% at 100% 100%, rgba(76, 201, 240, 0.1) 0%, transparent 58%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+html[data-phase="4"] .hud {
+  background: linear-gradient(180deg, rgba(25, 30, 54, 0.95), rgba(7, 9, 18, 0.9));
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4);
+}
+
+html[data-phase="4"] .nav-btn.is-active {
+  color: var(--purple);
+  border-bottom-color: var(--purple);
+}
+
+html[data-phase="4"] .up-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(170deg, var(--panel-2) 0%, var(--panel) 100%);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.42),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  transition: transform 130ms ease, box-shadow 170ms ease, border-color 170ms ease;
+}
+
+html[data-phase="4"] .up-row.is-affordable {
+  border-color: var(--purple);
+  box-shadow:
+    0 8px 26px rgba(192, 132, 252, 0.22),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+}
+
+html[data-phase="4"] .up-row.is-affordable:active {
+  transform: translateY(1px) scale(0.995);
+}
+
+html[data-phase="4"] .cat-tab {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 999px;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+html[data-phase="4"] .cat-tab.is-active {
+  background: var(--purple);
+  border-color: var(--purple);
+  color: #0b0714;
+}
+
+html[data-phase="4"] .buy-mult {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  border-radius: 999px;
+}
+
+html[data-phase="4"] .buy-mult-btn.is-active {
+  background: var(--purple);
+  color: #0b0714;
+}
+
+html[data-phase="4"] .sub-block {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(25, 30, 54, 0.45);
+}
+
+html[data-phase="4"] .sub-head h3 {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+html[data-phase="4"] .up-sell {
+  border: 1px solid var(--purple);
+  color: var(--purple);
+  background: rgba(192, 132, 252, 0.08);
+  border-radius: 999px;
+}
+
+html[data-phase="4"] .ms-mark {
+  color: var(--purple);
+}
+
+html[data-phase="4"] .pr-tier {
+  border-radius: 999px;
+}
+
+html[data-phase="4"] .prestige-row {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   PHASE 6 — HOLO+
+   Phase 5's cyan projection with the violet voice. Brackets go violet, the
+   glow gains a violet edge. Still light, not yet corrupted.
+   -------------------------------------------------------------------------- */
+html[data-phase="6"] {
+  --bg: #04040e;
+  --bg-2: #0a0718;
+  --panel: rgba(14, 10, 32, 0.58);
+  --panel-2: rgba(22, 14, 46, 0.62);
+  --line: rgba(168, 132, 252, 0.3);
+
+  --text: #e4dcff;
+
+  --accent: #00e5ff;
+  --accent-2: #c084fc;
+  --purple: #c084fc;
+  --heat-col: #00e5ff;
+
+  --font-ui: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+html[data-phase="6"] body {
+  background:
+    radial-gradient(80% 55% at 15% 0%, rgba(168, 132, 252, 0.12) 0%, transparent 58%),
+    radial-gradient(70% 50% at 90% 100%, rgba(0, 229, 255, 0.09) 0%, transparent 55%),
+    var(--bg);
+  color: var(--text);
+}
+
+html[data-phase="6"] .hud {
+  background: linear-gradient(180deg, rgba(38, 18, 70, 0.9), rgba(10, 7, 24, 0.85));
+  border-bottom: 1px solid rgba(192, 132, 252, 0.45);
+}
+
+html[data-phase="6"] .hud-title {
+  color: var(--purple);
+  text-shadow: 0 0 16px rgba(192, 132, 252, 0.6), 0 0 28px rgba(0, 229, 255, 0.25);
+}
+
+/* The click button is the biggest surface on screen, so it carries the
+   violet in this phase. That is what separates HOLO+ from plain HOLO. */
+html[data-phase="6"] .exploit-btn {
+  border-color: rgba(192, 132, 252, 0.6);
+  background:
+    radial-gradient(90% 90% at 50% 0%, rgba(192, 132, 252, 0.28) 0%, transparent 70%),
+    rgba(20, 10, 40, 0.7);
+  box-shadow:
+    0 0 0 1px rgba(192, 132, 252, 0.2) inset,
+    0 0 30px rgba(192, 132, 252, 0.3);
+}
+
+html[data-phase="6"] .exploit-label {
+  color: var(--accent);
+  text-shadow: 0 0 14px rgba(192, 132, 252, 0.55);
+}
+
+html[data-phase="6"] .nav-btn.is-active {
+  color: var(--purple);
+  border-bottom-color: var(--purple);
+}
+
+html[data-phase="6"] .heat-fill {
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+}
+
+html[data-phase="6"] .up-row {
+  position: relative;
+  border: 1px solid rgba(168, 132, 252, 0.24);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    100deg,
+    rgba(192, 132, 252, 0.07) 0%,
+    rgba(0, 229, 255, 0.03) 45%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(192, 132, 252, 0.06) inset,
+    0 0 22px rgba(168, 132, 252, 0.1);
+}
+
+/* The corner brackets are violet now. */
+html[data-phase="6"] .up-row::before,
+html[data-phase="6"] .up-row::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--purple);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+html[data-phase="6"] .up-row::before {
+  top: -1px;
+  left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+html[data-phase="6"] .up-row::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: 0;
+  border-top: 0;
+}
+
+html[data-phase="6"] .up-row.is-affordable {
+  border-color: rgba(192, 132, 252, 0.6);
+  box-shadow:
+    0 0 0 1px rgba(192, 132, 252, 0.14) inset,
+    0 0 24px rgba(168, 132, 252, 0.24);
+}
+
+html[data-phase="6"] .up-name {
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 10px rgba(192, 132, 252, 0.45);
+}
+
+html[data-phase="6"] .cat-tab {
+  border: 1px solid rgba(168, 132, 252, 0.28);
+  background: rgba(192, 132, 252, 0.05);
+  border-radius: var(--radius-sm);
+}
+
+html[data-phase="6"] .cat-tab.is-active {
+  border-color: var(--purple);
+  background: rgba(192, 132, 252, 0.16);
+  box-shadow: 0 0 16px rgba(168, 132, 252, 0.28);
+}
+
+html[data-phase="6"] .buy-mult-btn.is-active {
+  background: var(--purple);
+  color: #0b0518;
+  box-shadow: 0 0 12px rgba(168, 132, 252, 0.45);
+}
+
+html[data-phase="6"] .sub-head h3 {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+html[data-phase="6"] .sub-block {
+  padding: 12px;
+  border: 1px solid rgba(168, 132, 252, 0.18);
+  border-radius: var(--radius-sm);
+  background: rgba(192, 132, 252, 0.03);
+}
+
+html[data-phase="6"] .up-sell {
+  border: 1px solid rgba(192, 132, 252, 0.5);
+  color: var(--purple);
+  background: rgba(192, 132, 252, 0.08);
+}
+
+html[data-phase="6"] .ms-mark {
+  color: var(--purple);
+}
+
+html[data-phase="6"] .progress-fill {
+  background: var(--accent);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.5);
+}
+
+html[data-phase="6"] .heat-fill {
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+}
+
+/* --------------------------------------------------------------------------
+   PHASE 7 — HOLO FAULT
+   First corruption. The cyan machine is still standing, but magenta is
+   bleeding into the borders and one or two things flicker.
+   -------------------------------------------------------------------------- */
+html[data-phase="7"] {
+  --bg: #060209;
+  --bg-2: #0c0414;
+  --panel: rgba(22, 6, 26, 0.6);
+  --panel-2: rgba(36, 8, 40, 0.66);
+  --line: rgba(255, 60, 160, 0.3);
+
+  --text: #e8daf0;
+
+  --accent: #00e5ff;
+  --accent-2: #ff2fa0;
+  --purple: #c084fc;
+  --heat-col: #ff2fa0;
+
+  --font-ui: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+html[data-phase="7"] body {
+  background:
+    radial-gradient(80% 55% at 12% 0%, rgba(255, 47, 160, 0.14) 0%, transparent 58%),
+    radial-gradient(70% 50% at 92% 100%, rgba(0, 229, 255, 0.08) 0%, transparent 55%),
+    var(--bg);
+  color: var(--text);
+}
+
+html[data-phase="7"] .hud {
+  background: rgba(12, 4, 20, 0.85);
+  border-bottom: 1px solid rgba(255, 47, 160, 0.4);
+}
+
+html[data-phase="7"] .hud-title {
+  color: var(--accent);
+  text-shadow:
+    1px 0 rgba(255, 47, 160, 0.65),
+    0 0 16px rgba(0, 229, 255, 0.4);
+}
+
+html[data-phase="7"] .up-row {
+  position: relative;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-left: 1px solid rgba(255, 47, 160, 0.55);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    100deg,
+    rgba(0, 229, 255, 0.04) 0%,
+    rgba(255, 47, 160, 0.05) 70%,
+    transparent 100%
+  );
+}
+
+html[data-phase="7"] .up-row::before,
+html[data-phase="7"] .up-row::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--accent);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+html[data-phase="7"] .up-row::before {
+  top: -1px;
+  left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+/* The second bracket has already turned. */
+html[data-phase="7"] .up-row::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: 0;
+  border-top: 0;
+  border-color: var(--accent-2);
+  opacity: 0.8;
+}
+
+html[data-phase="7"] .up-row.is-affordable {
+  border-color: rgba(255, 47, 160, 0.65);
+  box-shadow: 0 0 18px rgba(255, 47, 160, 0.16);
+}
+
+html[data-phase="7"] .up-name {
+  letter-spacing: 0.03em;
+  text-shadow: 1px 0 rgba(255, 47, 160, 0.4);
+}
+
+html[data-phase="7"] .cat-tab.is-active {
+  border-color: var(--accent-2);
+  background: rgba(255, 47, 160, 0.14);
+  box-shadow: 0 0 14px rgba(255, 47, 160, 0.3);
+}
+
+html[data-phase="7"] .buy-mult-btn.is-active {
+  background: var(--accent-2);
+  color: #0a0110;
+}
+
+html[data-phase="7"] .sub-head h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+html[data-phase="7"] .sub-block {
+  padding: 12px;
+  border: 1px solid rgba(255, 47, 160, 0.16);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 47, 160, 0.03);
+}
+
+html[data-phase="7"] .up-sell {
+  border: 1px solid rgba(255, 47, 160, 0.5);
+  color: var(--accent-2);
+  background: rgba(255, 47, 160, 0.08);
+}
+
+html[data-phase="7"] .ms-mark {
+  color: var(--accent-2);
+}
+
+html[data-phase="7"] .heat-fill {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+/* The flicker itself. phases.js adds .is-faulting in short bursts. */
+body.is-faulting .app {
+  animation: phase-fault 180ms steps(2, end);
+}
+
+@keyframes phase-fault {
+  0%   { opacity: 1; }
+  35%  { opacity: 0.82; transform: translateX(1px); }
+  70%  { opacity: 1; transform: translateX(-1px); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* --------------------------------------------------------------------------
+   PHASE 8 — REALITY
+   The hologram is breaking. Cyan and magenta both claim the borders, the
+   scanline appears, and text picks up chromatic edges.
+   -------------------------------------------------------------------------- */
+html[data-phase="8"] {
+  --bg: #030205;
+  --bg-2: #07020a;
+  --panel: rgba(10, 4, 12, 0.7);
+  --panel-2: rgba(20, 7, 20, 0.76);
+  --line: rgba(0, 229, 255, 0.34);
+
+  --text: #eaf6f8;
+  --text-dim: #8c8fa0;
+
+  --accent: #00e5ff;
+  --accent-2: #ff2fa0;
+  --purple: #c084fc;
+  --heat-col: #ff2fa0;
+
+  --font-ui: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+html[data-phase="8"] body {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 229, 255, 0.035) 0 1px,
+      transparent 1px 3px
+    ),
+    radial-gradient(75% 55% at 15% 0%, rgba(255, 47, 160, 0.12) 0%, transparent 58%),
+    radial-gradient(70% 50% at 90% 95%, rgba(0, 229, 255, 0.1) 0%, transparent 55%),
+    var(--bg);
+  color: var(--text);
+}
+
+html[data-phase="8"] .hud {
+  background: rgba(6, 3, 9, 0.9);
+  border-bottom: 1px solid rgba(255, 47, 160, 0.35);
+}
+
+html[data-phase="8"] .hud-title {
+  color: var(--text);
+  text-shadow:
+    1.5px 0 rgba(255, 47, 160, 0.7),
+    -1.5px 0 rgba(0, 229, 255, 0.7);
+}
+
+html[data-phase="8"] .up-row {
+  position: relative;
+  border: 1px solid rgba(0, 229, 255, 0.24);
+  border-radius: 2px;
+  background: linear-gradient(
+    100deg,
+    rgba(0, 229, 255, 0.05) 0%,
+    rgba(255, 47, 160, 0.05) 55%,
+    transparent 100%
+  );
+}
+
+/* Both edges fight for the row: cyan left, magenta right. */
+html[data-phase="8"] .up-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-left: 2px solid rgba(0, 229, 255, 0.6);
+  border-right: 2px solid rgba(255, 47, 160, 0.6);
+}
+
+html[data-phase="8"] .up-row.is-affordable {
+  border-color: rgba(255, 47, 160, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.08) inset,
+    0 0 18px rgba(255, 47, 160, 0.14);
+}
+
+html[data-phase="8"] .up-name {
+  letter-spacing: 0.04em;
+  text-shadow:
+    1px 0 rgba(255, 47, 160, 0.55),
+    -1px 0 rgba(0, 229, 255, 0.55);
+}
+
+html[data-phase="8"] .cat-tab.is-active {
+  border-color: var(--accent);
+  background: rgba(0, 229, 255, 0.12);
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.24);
+}
+
+html[data-phase="8"] .buy-mult-btn.is-active {
+  background: var(--accent);
+  color: #001018;
+}
+
+html[data-phase="8"] .sub-head h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 0.88rem;
+  color: var(--accent);
+  text-shadow: 1px 0 rgba(255, 47, 160, 0.5);
+}
+
+html[data-phase="8"] .sub-block {
+  padding: 12px;
+  border: 1px solid rgba(0, 229, 255, 0.14);
+  border-radius: 2px;
+  background: rgba(0, 229, 255, 0.02);
+}
+
+html[data-phase="8"] .up-sell {
+  border: 1px solid rgba(255, 47, 160, 0.45);
+  color: var(--accent-2);
+  background: rgba(255, 47, 160, 0.06);
+}
+
+html[data-phase="8"] .progress-fill {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+html[data-phase="8"] .heat-fill {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+/* --------------------------------------------------------------------------
+   PHASE 9 — REALITY+
+   Full glitch. Violet joins the fight, rows tear when tapped, and the
+   background shifts under the content.
+   -------------------------------------------------------------------------- */
+html[data-phase="9"] {
+  --bg: #050108;
+  --bg-2: #0b0212;
+  --panel: rgba(16, 3, 20, 0.72);
+  --panel-2: rgba(28, 5, 34, 0.78);
+  --line: rgba(192, 132, 252, 0.34);
+
+  --text: #f4eaf8;
+  --text-dim: #a08aa8;
+
+  --accent: #ff2fa0;
+  --accent-2: #00e5ff;
+  --purple: #c084fc;
+  --heat-col: #ff2fa0;
+
+  --font-ui: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+html[data-phase="9"] body {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(192, 132, 252, 0.04) 0 1px,
+      transparent 1px 3px
+    ),
+    radial-gradient(80% 60% at 25% 0%, rgba(192, 132, 252, 0.16) 0%, transparent 62%),
+    radial-gradient(70% 55% at 90% 90%, rgba(255, 47, 160, 0.12) 0%, transparent 58%),
+    var(--bg);
+  color: var(--text);
+}
+
+html[data-phase="9"] .hud {
+  background: rgba(10, 2, 16, 0.92);
+  border-bottom: 1px solid rgba(192, 132, 252, 0.4);
+}
+
+html[data-phase="9"] .hud-title {
+  color: var(--text);
+  text-shadow:
+    2px 0 rgba(255, 47, 160, 0.8),
+    -2px 0 rgba(0, 229, 255, 0.7),
+    0 0 20px rgba(192, 132, 252, 0.5);
+}
+
+html[data-phase="9"] .up-row {
+  position: relative;
+  border: 1px solid rgba(192, 132, 252, 0.3);
+  border-radius: 1px;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 47, 160, 0.07) 0%,
+    rgba(192, 132, 252, 0.06) 45%,
+    rgba(0, 229, 255, 0.05) 100%
+  );
+}
+
+html[data-phase="9"] .up-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-left: 2px solid rgba(255, 47, 160, 0.6);
+  border-right: 2px solid rgba(0, 229, 255, 0.6);
+}
+
+html[data-phase="9"] .up-row.is-affordable {
+  border-color: rgba(192, 132, 252, 0.65);
+  box-shadow:
+    0 0 0 1px rgba(192, 132, 252, 0.1) inset,
+    0 0 22px rgba(192, 132, 252, 0.2);
+}
+
+/* Rows tear when tapped. */
+html[data-phase="9"] .up-row:active {
+  animation: phase9-row-tear 240ms steps(2, end);
+}
+
+@keyframes phase9-row-tear {
+  0%   { transform: translateX(0); }
+  35%  { transform: translateX(-4px) skewX(2deg); }
+  70%  { transform: translateX(3px) skewX(-1.5deg); }
+  100% { transform: translateX(0); }
+}
+
+html[data-phase="9"] .up-name {
+  letter-spacing: 0.04em;
+  text-shadow:
+    1.5px 0 rgba(255, 47, 160, 0.6),
+    -1.5px 0 rgba(0, 229, 255, 0.5),
+    0 0 12px rgba(192, 132, 252, 0.35);
+}
+
+html[data-phase="9"] .cat-tab.is-active {
+  border-color: var(--purple);
+  background: rgba(192, 132, 252, 0.18);
+  box-shadow: 0 0 18px rgba(192, 132, 252, 0.3);
+}
+
+html[data-phase="9"] .buy-mult-btn.is-active {
+  background: var(--purple);
+  color: #0b0212;
+}
+
+html[data-phase="9"] .sub-head h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.88rem;
+  color: var(--purple);
+  text-shadow: 1px 0 rgba(255, 47, 160, 0.5);
+}
+
+html[data-phase="9"] .sub-block {
+  padding: 12px;
+  border: 1px solid rgba(192, 132, 252, 0.18);
+  border-radius: 1px;
+  background: rgba(192, 132, 252, 0.03);
+}
+
+html[data-phase="9"] .up-sell {
+  border: 1px solid rgba(192, 132, 252, 0.55);
+  color: var(--purple);
+  background: rgba(192, 132, 252, 0.1);
+}
+
+html[data-phase="9"] .progress-fill,
+html[data-phase="9"] .heat-fill {
+  background: linear-gradient(90deg, var(--accent), var(--purple), var(--accent-2));
+}
+
+/* The background itself shifts under the content, slowly. */
+html[data-phase="9"] body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    45% 40% at 50% 50%,
+    rgba(192, 132, 252, 0.07) 0%,
+    transparent 70%
+  );
+  animation: phase9-drift 11s ease-in-out infinite alternate;
+}
+
+@keyframes phase9-drift {
+  from { transform: translate3d(-4%, -3%, 0) scale(1.02); }
+  to   { transform: translate3d(4%, 3%, 0) scale(1.06); }
+}
+
+/* --------------------------------------------------------------------------
+   PHASE 10 — OUTSIDE
+   The old phase-4 glitch look, which glitch.css supplies. The one addition
+   is that this phase is calm: the glitch settles once the tether is cut.
+   -------------------------------------------------------------------------- */
+html[data-phase="10"] .screen {
+  animation: phase-outside-arrive 900ms ease both;
+}
+
+@keyframes phase-outside-arrive {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   Reduced motion: all of the above collapses to a static look.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  body.is-faulting .app,
+  html[data-phase="9"] .up-row:active,
+  html[data-phase="9"] body::before,
+  html[data-phase="10"] .screen {
+    animation: none;
+  }
+}

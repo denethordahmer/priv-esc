@@ -2,6 +2,50 @@
    economy.js — production, purchasing, and the buy-best helper
    ========================================================================= */
 
+/** Fraction of the purchase price returned when selling a level. */
+const SELL_REFUND = 0.7;
+
+/**
+ * What one level of this unit would refund right now.
+ * The price of the level being sold is the cost of the last one bought, so
+ * the refund is the current price divided by the growth step.
+ */
+function sellValue(unit) {
+  const owned = ownedOf(unit.key);
+  if (owned <= 0) return 0;
+  return unitCost(unit) / COST_GROWTH * SELL_REFUND;
+}
+
+/** Sell one level back. Returns true if sold. */
+function sellUnit(unit) {
+  const owned = ownedOf(unit.key);
+  if (owned <= 0) return false;
+
+  const refund = sellValue(unit);
+  state.upgrades[unit.key] = owned - 1;
+  state.data += refund;
+
+  if (unit.kind === 'heat') state.maxHeat = heatCapacity();
+
+  logConsole(`sold ${unit.name}  +${fmt(refund)} DATA`, 'buy');
+  return true;
+}
+
+/**
+ * Buy as many levels as the player can afford, up to `limit`.
+ * Returns how many were bought.
+ */
+function buyMany(unit, limit) {
+  let bought = 0;
+  while (bought < limit) {
+    if (unitMaxed(unit)) break;
+    if (state.data < unitCost(unit)) break;
+    if (!buyUnit(unit)) break;
+    bought += 1;
+  }
+  return bought;
+}
+
 /**
  * Apply a purchase of one level of a unit.
  * Returns true if bought, false if unaffordable or capped.
@@ -14,6 +58,7 @@ function buyUnit(unit) {
 
   state.data -= cost;
   state.upgrades[unit.key] = ownedOf(unit.key) + 1;
+  state.lifetimeLevels = (state.lifetimeLevels || 0) + 1;
 
   // Buying a Cooling upgrade raises the heat ceiling immediately.
   if (unit.kind === 'heat') {

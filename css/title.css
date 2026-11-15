@@ -294,6 +294,10 @@
   display: flex;
   gap: 12px;
   width: min(100%, 330px);
+  /* The chamfered corners are cut with clip-path, which also clips the 2px
+     border. A little padding keeps the outline inside the frame instead of
+     running off the left and right edges. */
+  padding: 0 2px;
 }
 
 .title-secondary {

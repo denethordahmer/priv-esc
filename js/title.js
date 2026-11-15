@@ -60,6 +60,8 @@ function showTitleScreen() {
   const screen = document.getElementById('title-screen');
   if (!screen) return;
   screen.hidden = false;
+  // The title theme belongs to this screen and nowhere else.
+  setMusicContext('title');
   initTitleScreen();
 }
 
@@ -67,6 +69,8 @@ function showTitleScreen() {
 function dismissTitleScreen() {
   const screen = document.getElementById('title-screen');
   if (!screen) return;
+  // The numbered tracks start here, and only here.
+  setMusicContext('game');
   screen.classList.add('is-gone');
   setTimeout(() => {
     screen.hidden = true;

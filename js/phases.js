@@ -1,43 +1,74 @@
 /* =========================================================================
-   phases.js — swaps the UI skin between the four design phases
-   Phase 0/1: basic terminal    Phase 2: modern OS
-   Phase 3: hologram            Phase 4: glitch reality
+   phases.js — swaps the UI skin across the ten-phase ladder
+
+   One phase, one look. Nothing is reused and nothing is shared: every gate
+   gets its own palette, its own edge treatment and its own amount of
+   corruption, so a phase change is always visible.
+
+     phase  name         what it reads as
+     1      TERMINAL     green on black, square, monospace
+     2      TERMINAL+    the same terminal, violet joins it
+     3      OS           blue-grey cards, rounded, soft shadows
+     4      OS+          the OS with violet depth and lifted panels
+     5      HOLO         cyan projection, hairline borders, brackets
+     6      HOLO+        cyan and violet, brackets gone violet
+     7      HOLO FAULT   cyan base with magenta bleeding in
+     8      REALITY      cyan and magenta fighting, scanlines
+     9      REALITY+     violet joins, rows tear, background shifts
+     10     OUTSIDE      the glitch look the game ended on before
    ========================================================================= */
 
 const PHASE_META = [
-  { id: 0, name: 'TERMINAL', version: 'v0.0.1' },
-  { id: 1, name: 'TERMINAL', version: 'v0.1.0' },
-  { id: 2, name: 'OS', version: 'v2.0.0' },
-  { id: 3, name: 'HOLO', version: 'v3.0.0' },
-  { id: 4, name: 'REALITY', version: 'v4.0.0' },
+  { id: 0,  name: 'TERMINAL',    version: 'v0.0.1', skin: 'terminal', glyph: '▮' },
+  { id: 1,  name: 'TERMINAL',    version: 'v0.1.0', skin: 'terminal', glyph: '▮' },
+  { id: 2,  name: 'TERMINAL+',   version: 'v0.1.1', skin: 'terminal-plus', glyph: '▮' },
+  { id: 3,  name: 'OS',          version: 'v2.0.0', skin: 'os', glyph: '◉' },
+  { id: 4,  name: 'OS+',         version: 'v2.0.1', skin: 'os-plus', glyph: '◉' },
+  { id: 5,  name: 'HOLO',        version: 'v3.0.0', skin: 'holo', glyph: '◇' },
+  { id: 6,  name: 'HOLO+',       version: 'v3.0.1', skin: 'holo-plus', glyph: '◇' },
+  { id: 7,  name: 'HOLO FAULT',  version: 'v3.9.7', skin: 'holo-fault', glyph: '◈' },
+  { id: 8,  name: 'REALITY',     version: 'v4.0.0', skin: 'reality', glyph: '✶' },
+  { id: 9,  name: 'REALITY+',    version: 'v4.0.1', skin: 'reality-plus', glyph: '✶' },
+  { id: 10, name: 'OUTSIDE',     version: 'v5.0.0', skin: 'reality-outside', glyph: '○' },
 ];
 
+const MAX_PHASE = 10;
+
 let glitchTimer = null;
+let faultTimer = null;
 
 /** Apply a phase to the document. Idempotent. */
 function applyPhase(phase) {
-  const p = Math.max(0, Math.min(4, phase));
-  const clamped = p === 0 ? 1 : p;       // phase 0 still uses the terminal skin
-
-  document.documentElement.setAttribute('data-phase', String(clamped));
-
+  const p = Math.max(0, Math.min(MAX_PHASE, phase));
+  const clamped = p === 0 ? 1 : p;
   const meta = PHASE_META[clamped];
+
+  const root = document.documentElement;
+  // data-phase is the rung and drives per-phase rules; data-skin lets a phase
+  // inherit a base look and then override it in bridge.css.
+  root.setAttribute('data-phase', String(clamped));
+  root.setAttribute('data-skin', meta.skin);
+
   const title = document.getElementById('hud-title');
   const version = document.getElementById('hud-phase');
   const glyph = document.getElementById('hud-glyph');
 
-  if (title) title.textContent = clamped >= 4 ? 'pr1v-3sc' : 'priv-esc';
+  if (title) title.textContent = clamped >= 8 ? 'pr1v-3sc' : 'priv-esc';
   if (version) version.textContent = meta.version;
-  if (glyph) glyph.textContent = clamped === 1 ? '▮' : clamped === 2 ? '◉' : '◇';
+  if (glyph) glyph.textContent = meta.glyph;
 
   state.phase = clamped;
-  document.body.classList.toggle('is-phase-4', clamped === 4);
+  document.body.classList.toggle('is-phase-outside', meta.skin === 'reality-outside');
 
-  if (clamped === 4) startGlitch(); else stopGlitch();
+  // Later phases run progressively more motion. Chasing-the-tether phases run
+  // the full glitch; 8 and 9 run it too, 7 runs a light fault, and everything
+  // before 7 runs nothing.
+  if (clamped >= 8) startGlitch(); else stopGlitch();
+  if (clamped === 7) startFault(); else stopFault();
 }
 
 /**
- * Phase 4: the CSS "randomly alters itself".
+ * Reality: the CSS "randomly alters itself".
  * Small, reversible, and it stops if the player prefers reduced motion.
  */
 function startGlitch() {
@@ -71,7 +102,25 @@ function stopGlitch() {
   document.body.classList.remove('is-glitching');
 }
 
-/** Show the prestige tab once the player has reached the wall. */
+/** HOLO FAULT: rarer, softer flicker than the full glitch. */
+function startFault() {
+  if (faultTimer) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  faultTimer = setInterval(() => {
+    if (Math.random() > 0.3) return;
+    document.body.classList.add('is-faulting');
+    setTimeout(() => document.body.classList.remove('is-faulting'), 180);
+  }, 4200);
+}
+
+function stopFault() {
+  if (faultTimer) clearInterval(faultTimer);
+  faultTimer = null;
+  document.body.classList.remove('is-faulting');
+}
+
+/** Show the prestige tab once the player can ascend. */
 function revealPrestige() {
   const nav = document.getElementById('nav-prestige');
   if (nav) nav.hidden = false;
@@ -80,6 +129,12 @@ function revealPrestige() {
 function revealLog() {
   const nav = document.getElementById('nav-log');
   if (nav) nav.hidden = false;
+}
+
+/** Unlock the second prestige layer once the ladder reaches it. */
+function revealEscape() {
+  if (typeof state !== 'undefined') state.escapeUnlocked = true;
+  syncEscapeControls();
 }
 
 /** Build the fake boot sequence shown before the app appears. */

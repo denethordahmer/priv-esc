@@ -2,8 +2,13 @@
    Plain browser script: defines the display helpers on window. */
 
 (function () {
-  const SUFFIXES = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
-  const EXP_LIMIT = 1e36;
+  // Short-scale names, one per three zeros. The ladder in data-upgrades.js
+  // ends at duodecillion (1e39), so the table has to name that far.
+  const SUFFIXES = [
+    '', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc',
+    'Ud', 'Dd', 'Td', 'Qad',
+  ];
+  const EXP_LIMIT = 1e48;
 
   // Drop trailing zeroes so "1.50K" reads "1.5K" and "1.00K" reads "1K".
   function trimZeros(s) {
@@ -96,10 +101,29 @@
     return 'x' + n.toFixed(2);
   }
 
+  /**
+   * Compact form for the header: the same number, but never wider than
+   * "1.23Ud". Past the named suffixes it falls back to a short exponent, so
+   * the DATA readout cannot push the header out of shape.
+   */
+  function fmtCompact(n) {
+    if (!isFinite(n)) return '—';
+    if (n === 0) return '0';
+    const value = Math.abs(n);
+    if (value < 1000) return fmt(n);
+    if (value >= EXP_LIMIT) {
+      const exp = Math.floor(Math.log10(value));
+      const mant = value / Math.pow(10, exp);
+      return (n < 0 ? '-' : '') + mant.toFixed(1) + 'e' + exp;
+    }
+    return fmt(n);
+  }
+
   window.fmt = fmt;
   window.fmtRate = fmtRate;
   window.fmtPct = fmtPct;
   window.fmtTime = fmtTime;
   window.fmtClock = fmtClock;
   window.fmtMult = fmtMult;
+  window.fmtCompact = fmtCompact;
 })();

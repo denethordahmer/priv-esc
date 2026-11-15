@@ -8,7 +8,7 @@
 /* --------------------------------------------------------------------------
    1. Tokens: modern OS palette, shape and type
    -------------------------------------------------------------------------- */
-html[data-phase="2"] {
+html[data-skin^="os"] {
   --bg: #0b0f14;
   --bg-2: #111820;
   --panel: rgba(24, 32, 42, 0.72);
@@ -26,7 +26,7 @@ html[data-phase="2"] {
   color-scheme: dark;
 }
 
-html[data-phase="2"] body {
+html[data-skin^="os"] body {
   background: var(--bg);
   color: var(--text);
 }
@@ -34,11 +34,11 @@ html[data-phase="2"] body {
 /* --------------------------------------------------------------------------
    2. Glass panels: HUD, side rail, exploit button, prestige paths, modal
    -------------------------------------------------------------------------- */
-html[data-phase="2"] .hud,
-html[data-phase="2"] .side-block,
-html[data-phase="2"] .path,
-html[data-phase="2"] .modal-card,
-html[data-phase="2"] .exploit-btn {
+html[data-skin^="os"] .hud,
+html[data-skin^="os"] .side-block,
+html[data-skin^="os"] .path,
+html[data-skin^="os"] .modal-card,
+html[data-skin^="os"] .exploit-btn {
   background: var(--panel);
   border: 1px solid var(--line);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.38);
@@ -48,28 +48,28 @@ html[data-phase="2"] .exploit-btn {
 
 /* Webviews without backdrop-filter get a denser panel instead of a ghost. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  html[data-phase="2"] .hud,
-  html[data-phase="2"] .side-block,
-  html[data-phase="2"] .path,
-  html[data-phase="2"] .modal-card,
-  html[data-phase="2"] .exploit-btn {
+  html[data-skin^="os"] .hud,
+  html[data-skin^="os"] .side-block,
+  html[data-skin^="os"] .path,
+  html[data-skin^="os"] .modal-card,
+  html[data-skin^="os"] .exploit-btn {
     background-color: #141d27;
   }
 }
 
-html[data-phase="2"] .hud {
+html[data-skin^="os"] .hud {
   border-width: 0 0 1px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
-html[data-phase="2"] .side-block {
+html[data-skin^="os"] .side-block {
   border-radius: var(--radius);
 }
 
 /* --------------------------------------------------------------------------
    3. Exploit button: rounded rectangle with an accent gradient
    -------------------------------------------------------------------------- */
-html[data-phase="2"] .exploit-btn {
+html[data-skin^="os"] .exploit-btn {
   width: min(78vw, 340px);
   min-width: 200px;
   min-height: 140px;
@@ -86,7 +86,7 @@ html[data-phase="2"] .exploit-btn {
     filter var(--t-fast);
 }
 
-html[data-phase="2"] .exploit-btn:active {
+html[data-skin^="os"] .exploit-btn:active {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   filter: brightness(1.06);
   transform: scale(0.98);
@@ -94,31 +94,31 @@ html[data-phase="2"] .exploit-btn:active {
     0 12px 32px rgba(123, 97, 255, 0.34);
 }
 
-html[data-phase="2"] .exploit-btn:focus-visible {
+html[data-skin^="os"] .exploit-btn:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 4px;
 }
 
-html[data-phase="2"] .exploit-btn .exploit-label {
+html[data-skin^="os"] .exploit-btn .exploit-label {
   color: #fff;
   font-family: var(--font-ui);
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 
-html[data-phase="2"] .exploit-btn .exploit-sub {
+html[data-skin^="os"] .exploit-btn .exploit-sub {
   color: rgba(255, 255, 255, 0.78);
   font-family: var(--font-ui);
 }
 
 /* Kill any cursor / glitch pseudo-element left over from other skins. */
-html[data-phase="2"] .exploit-btn::before,
-html[data-phase="2"] .exploit-btn::after {
+html[data-skin^="os"] .exploit-btn::before,
+html[data-skin^="os"] .exploit-btn::after {
   content: none;
   display: none;
 }
 
-html[data-phase="2"] .exploit-hint {
+html[data-skin^="os"] .exploit-hint {
   color: var(--text-dim);
   text-transform: none;
   letter-spacing: 0.02em;
@@ -127,7 +127,7 @@ html[data-phase="2"] .exploit-hint {
 /* --------------------------------------------------------------------------
    4. Charts: thin accent line area
    -------------------------------------------------------------------------- */
-html[data-phase="2"] .result-chart {
+html[data-skin^="os"] .result-chart {
   position: relative;
   height: 72px;
   padding: var(--sp-2);
@@ -141,7 +141,7 @@ html[data-phase="2"] .result-chart {
   border-radius: var(--radius);
 }
 
-html[data-phase="2"] .spark {
+html[data-skin^="os"] .spark {
   display: block;
   width: 100%;
   height: 100%;
@@ -153,8 +153,8 @@ html[data-phase="2"] .spark {
   filter: drop-shadow(0 0 4px rgba(76, 201, 240, 0.45));
 }
 
-html[data-phase="2"] .result-chart .spark polyline,
-html[data-phase="2"] .result-chart .spark path {
+html[data-skin^="os"] .result-chart .spark polyline,
+html[data-skin^="os"] .result-chart .spark path {
   fill: none;
   stroke: inherit;
   stroke-width: inherit;
@@ -163,14 +163,14 @@ html[data-phase="2"] .result-chart .spark path {
 /* --------------------------------------------------------------------------
    5. Meters
    -------------------------------------------------------------------------- */
-html[data-phase="2"] .heat-bar {
+html[data-skin^="os"] .heat-bar {
   height: 8px;
   border-radius: 8px;
   background: var(--panel-2);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
-html[data-phase="2"] .heat-fill {
+html[data-skin^="os"] .heat-fill {
   border-radius: 8px;
   background-image: linear-gradient(
     90deg,
@@ -180,19 +180,19 @@ html[data-phase="2"] .heat-fill {
   box-shadow: 0 0 10px rgba(76, 201, 240, 0.35);
 }
 
-html[data-phase="2"] .heat.is-critical .heat-fill {
+html[data-skin^="os"] .heat.is-critical .heat-fill {
   background-image: linear-gradient(90deg, #f2984c, #ef476f);
   box-shadow: 0 0 12px rgba(239, 71, 111, 0.45);
 }
 
-html[data-phase="2"] .progress {
+html[data-skin^="os"] .progress {
   height: 6px;
   border-radius: 8px;
   background: var(--panel-2);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
-html[data-phase="2"] .progress-fill {
+html[data-skin^="os"] .progress-fill {
   border-radius: 8px;
   background-image: linear-gradient(90deg, var(--accent-2), var(--accent));
   transition: width 240ms ease;
@@ -201,7 +201,7 @@ html[data-phase="2"] .progress-fill {
 /* --------------------------------------------------------------------------
    6. Navigation pills
    -------------------------------------------------------------------------- */
-html[data-phase="2"] .nav-btn {
+html[data-skin^="os"] .nav-btn {
   border: 1px solid transparent;
   border-radius: 999px;
   background: rgba(120, 180, 220, 0.05);
@@ -214,13 +214,13 @@ html[data-phase="2"] .nav-btn {
 }
 
 @media (hover: hover) {
-  html[data-phase="2"] .nav-btn:hover {
+  html[data-skin^="os"] .nav-btn:hover {
     background: rgba(120, 180, 220, 0.1);
     color: var(--text);
   }
 }
 
-html[data-phase="2"] .nav-btn.is-active {
+html[data-skin^="os"] .nav-btn.is-active {
   border-color: rgba(76, 201, 240, 0.35);
   background: rgba(76, 201, 240, 0.16);
   color: var(--accent);
@@ -229,7 +229,7 @@ html[data-phase="2"] .nav-btn.is-active {
 /* --------------------------------------------------------------------------
    7. Console: soft rounded card, monospace text, no scanlines
    -------------------------------------------------------------------------- */
-html[data-phase="2"] .console {
+html[data-skin^="os"] .console {
   background: var(--panel);
   background-image: none;
   border: 1px solid var(--line);
@@ -239,26 +239,26 @@ html[data-phase="2"] .console {
   font-family: var(--font-mono);
 }
 
-html[data-phase="2"] .console::before,
-html[data-phase="2"] .console::after {
+html[data-skin^="os"] .console::before,
+html[data-skin^="os"] .console::after {
   content: none;
   display: none;
 }
 
-html[data-phase="2"] .console-line {
+html[data-skin^="os"] .console-line {
   color: var(--text);
 }
 
-html[data-phase="2"] .console-dim {
+html[data-skin^="os"] .console-dim {
   color: var(--text-dim);
 }
 
 /* --------------------------------------------------------------------------
    8. Buttons
    -------------------------------------------------------------------------- */
-html[data-phase="2"] .btn-primary,
-html[data-phase="2"] .btn-ghost,
-html[data-phase="2"] .btn-danger {
+html[data-skin^="os"] .btn-primary,
+html[data-skin^="os"] .btn-ghost,
+html[data-skin^="os"] .btn-danger {
   border-radius: 10px;
   font-family: var(--font-ui);
   letter-spacing: 0;
@@ -267,40 +267,40 @@ html[data-phase="2"] .btn-danger {
     color var(--t-fast);
 }
 
-html[data-phase="2"] .btn-primary {
+html[data-skin^="os"] .btn-primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-color: transparent;
   color: #fff;
 }
 
 @media (hover: hover) {
-  html[data-phase="2"] .btn-primary:hover {
+  html[data-skin^="os"] .btn-primary:hover {
     filter: brightness(1.07);
   }
 }
 
-html[data-phase="2"] .btn-ghost {
+html[data-skin^="os"] .btn-ghost {
   background: transparent;
   border-color: var(--line);
   color: var(--text);
 }
 
 @media (hover: hover) {
-  html[data-phase="2"] .btn-ghost:hover {
+  html[data-skin^="os"] .btn-ghost:hover {
     border-color: rgba(76, 201, 240, 0.4);
     background: rgba(76, 201, 240, 0.08);
     color: var(--accent);
   }
 }
 
-html[data-phase="2"] .btn-danger {
+html[data-skin^="os"] .btn-danger {
   background: rgba(229, 72, 77, 0.1);
   border-color: rgba(229, 72, 77, 0.4);
   color: #e88b8e;
 }
 
 @media (hover: hover) {
-  html[data-phase="2"] .btn-danger:hover {
+  html[data-skin^="os"] .btn-danger:hover {
     background: rgba(229, 72, 77, 0.18);
     border-color: rgba(229, 72, 77, 0.6);
     color: #f2a1a3;
@@ -310,7 +310,7 @@ html[data-phase="2"] .btn-danger {
 /* --------------------------------------------------------------------------
    9. Screen entrance
    -------------------------------------------------------------------------- */
-html[data-phase="2"] .screen.is-active {
+html[data-skin^="os"] .screen.is-active {
   animation: phase2-screen-in 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
@@ -326,7 +326,7 @@ html[data-phase="2"] .screen.is-active {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html[data-phase="2"] .screen.is-active {
+  html[data-skin^="os"] .screen.is-active {
     animation: none;
   }
 }
@@ -335,12 +335,12 @@ html[data-phase="2"] .screen.is-active {
    10. Wide screens: keep the button a rectangle, not the base circle
    -------------------------------------------------------------------------- */
 @media (min-width: 820px) {
-  html[data-phase="2"] .exploit-btn {
+  html[data-skin^="os"] .exploit-btn {
     width: 280px;
     min-height: 150px;
   }
 
-  html[data-phase="2"] .terminal-side {
+  html[data-skin^="os"] .terminal-side {
     border-left: 1px solid var(--line);
   }
 }

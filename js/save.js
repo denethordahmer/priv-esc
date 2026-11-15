@@ -14,6 +14,9 @@ function serialise() {
     lt: state.lifetimeData,
     ex: state.exabytes,
     gn: state.gridNodes,
+    es: state.escapes,
+    eu: state.escapeUnlocked === true,
+    ll: state.lifetimeLevels || 0,
     u: state.upgrades,
     h: state.heat,
     a: state.ascensions,
@@ -49,6 +52,9 @@ function loadState(raw) {
   state.lifetimeData = num(d.lt, base.lifetimeData);
   state.exabytes = num(d.ex, 0);
   state.gridNodes = num(d.gn, 0);
+  state.escapes = Math.max(0, Math.floor(num(d.es, 0)));
+  state.escapeUnlocked = d.eu === true || state.escapes > 0;
+  state.lifetimeLevels = Math.max(0, Math.floor(num(d.ll, 0)));
   state.heat = num(d.h, 0);
   state.ascensions = num(d.a, 0);
   state.phase = num(d.ph, 0);
@@ -72,6 +78,13 @@ function loadState(raw) {
   state.narrative = Array.isArray(d.nl) ? d.nl.slice(-200) : [];
   state.settings = Object.assign(base.settings, d.st && typeof d.st === 'object' ? d.st : {});
 
+  // Older saves have no volume. Clamp whatever arrives so a hand-edited save
+  // cannot set the music to 500% or NaN.
+  const vol = Number(state.settings.musicVolume);
+  state.settings.musicVolume = Number.isFinite(vol)
+    ? Math.max(0, Math.min(100, Math.round(vol)))
+    : DEFAULT_VOLUME;
+
   state.maxHeat = heatCapacity();
   return { ok: true };
 }
@@ -81,6 +94,10 @@ function sanitisePrestigeTiers(raw, path) {
   if (!raw || typeof raw !== 'object') return out;
   path.upgrades.forEach((up) => {
     const t = Math.floor(num(raw[up.id], 0));
+    if (up.repeat) {
+      if (t >= 1) out[up.id] = t;      // repeatable upgrades have no ceiling
+      return;
+    }
     if (t >= 1 && t <= 3) out[up.id] = t;
   });
   return out;
@@ -126,7 +143,12 @@ function wipeSave() {
 
 /**
  * Add Data produced while the tab was closed.
- * Cap comes from Cloud Predictive Routing (12/24/48 h), default 4 h.
+ *
+ * An idle game's clock is wall time, so offline is the main way progress
+ * happens: the player checks in, spends, and leaves. The cap is 24 hours by
+ * default (Cloud Predictive Routing raises it to 36/48/72), and every Escape
+ * Charge adds 5% to the efficiency, so long absences keep paying off as the
+ * ladder climbs.
  */
 function applyOfflineProgress() {
   const elapsedMs = Date.now() - state.lastTick;
@@ -134,14 +156,15 @@ function applyOfflineProgress() {
   if (elapsedSec < 30) return null;
 
   const routingTier = state.cloud.routing || 0;
-  const capHours = routingTier > 0 ? PRESTIGE.cloud.upgrades[2].tiers[routingTier - 1] : 4;
+  const capHours = routingTier > 0 ? PRESTIGE.cloud.upgrades[2].tiers[routingTier - 1] : 24;
   const cappedSec = Math.min(elapsedSec, capHours * 3600);
 
   let rate = dataPerSecond();
 
-  // Grid Synthetic Labor controls offline efficiency (50/100/150%).
+  // Grid Synthetic Labor controls offline efficiency (75/100/150%).
   const laborTier = state.grid.labor || 0;
-  const efficiency = laborTier > 0 ? PRESTIGE.grid.upgrades[2].tiers[laborTier - 1] : 0.5;
+  const baseEfficiency = laborTier > 0 ? PRESTIGE.grid.upgrades[2].tiers[laborTier - 1] : 0.75;
+  const efficiency = baseEfficiency + (state.escapes || 0) * ESCAPE_EFFICIENCY;
 
   const earned = rate * cappedSec * efficiency;
   if (earned <= 0) return null;

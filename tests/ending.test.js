@@ -46,11 +46,11 @@ const t=(name,cond,extra='')=>{if(cond){pass++;console.log(`[PASS] ${name} ${ext
 
 const s=X.state;
 const {endingArmed,endingProgress,syncEndingControls,startEnding,ENDING_AT}=X;
-s.lifetimeData=1e13*0.4;
+s.lifetimeData=ENDING_AT*0.4;
 t('below the gate is not armed', endingArmed()===false);
 t('progress is fractional', Math.abs(endingProgress()-0.4)<1e-9, endingProgress().toFixed(2));
 
-s.lifetimeData=1e13;
+s.lifetimeData=ENDING_AT;
 t('at the gate is armed', endingArmed()===true);
 t('progress clamps to 1', endingProgress()===1);
 
@@ -60,12 +60,12 @@ const actions=doc.getElementById('__actions');
 t('tether button appears when armed', !!doc.getElementById('btn-cut-tether'));
 t('ascend buttons hidden when armed', doc.getElementById('btn-prestige-cloud').attrs.hidden===true);
 
-s.lifetimeData=1e12;
+s.lifetimeData=ENDING_AT*0.1;
 syncEndingControls();
 t('ascend buttons return below the gate', doc.getElementById('btn-prestige-cloud').attrs.hidden===false);
 
 // Run the sequence.
-s.lifetimeData=1e13;
+s.lifetimeData=ENDING_AT;
 s.ascensions=42; s.totalClicks=1234; s.totalPlaySeconds=3600*30;
 const overlay=doc.getElementById('ending');
 overlay.querySelector=(sel)=>doc.getElementById('__q'+sel);

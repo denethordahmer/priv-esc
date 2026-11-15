@@ -5,7 +5,7 @@
    a player sees before the ending, not a punishment.
    ========================================================================= */
 
-html[data-phase="4"] {
+html[data-skin^="reality"] {
   --bg: #050505;
   --bg-2: #0a0308;
   --panel: rgba(12, 6, 10, 0.72);
@@ -20,7 +20,7 @@ html[data-phase="4"] {
   --glitch-duration: 180ms;
 }
 
-html[data-phase="4"] body {
+html[data-skin^="reality"] body {
   background:
     repeating-linear-gradient(
       0deg,
@@ -33,7 +33,7 @@ html[data-phase="4"] body {
 }
 
 /* Faint hex bleed in the background. Generated with text so it costs no assets. */
-html[data-phase="4"] body::before {
+html[data-skin^="reality"] body::before {
   content: "0xDEADBEEF  4F 4C 44 20 4D 41 43 48 49 4E 45  C0DE  0x7F45A3C1  deadbeef  4F 4C 44 20 4D 41 43 48 49 4E 45";
   position: fixed;
   inset: 0;
@@ -51,24 +51,24 @@ html[data-phase="4"] body::before {
   filter: blur(0.4px);
 }
 
-html[data-phase="4"] .app {
+html[data-skin^="reality"] .app {
   position: relative;
   z-index: 1;
 }
 
 /* Elements visibly carry a chromatic split. */
-html[data-phase="4"] .hud-title,
-html[data-phase="4"] .exploit-label,
-html[data-phase="4"] .side-title {
+html[data-skin^="reality"] .hud-title,
+html[data-skin^="reality"] .exploit-label,
+html[data-skin^="reality"] .side-title {
   text-shadow:
     1px 0 rgba(255, 47, 160, 0.65),
    -1px 0 rgba(51, 255, 178, 0.55);
 }
 
 /* Panels sit slightly loose, as if not quite attached. */
-html[data-phase="4"] .side-block,
-html[data-phase="4"] .path,
-html[data-phase="4"] .modal-card {
+html[data-skin^="reality"] .side-block,
+html[data-skin^="reality"] .path,
+html[data-skin^="reality"] .modal-card {
   background: var(--panel);
   border: 1px solid var(--line);
   box-shadow:
@@ -77,12 +77,12 @@ html[data-phase="4"] .modal-card {
   transform: rotate(-0.25deg);
 }
 
-html[data-phase="4"] .side-block:nth-child(even) {
+html[data-skin^="reality"] .side-block:nth-child(even) {
   transform: rotate(0.3deg);
 }
 
 /* The exploit button becomes unstable. */
-html[data-phase="4"] .exploit-btn {
+html[data-skin^="reality"] .exploit-btn {
   border-radius: 6px;
   border: 1px solid var(--accent);
   background:
@@ -95,7 +95,7 @@ html[data-phase="4"] .exploit-btn {
   animation: pe-flicker 3.4s steps(1, end) infinite;
 }
 
-html[data-phase="4"] .exploit-btn:active {
+html[data-skin^="reality"] .exploit-btn:active {
   transform: translate(1px, -1px) scale(0.985);
   filter: hue-rotate(18deg) brightness(1.2);
 }
@@ -110,29 +110,29 @@ body.is-glitching .hud {
 }
 
 /* The nav is "corrupted". */
-html[data-phase="4"] .nav-btn {
+html[data-skin^="reality"] .nav-btn {
   border-color: rgba(255, 47, 160, 0.35);
   letter-spacing: 0.06em;
 }
 
-html[data-phase="4"] .nav-btn.is-active {
+html[data-skin^="reality"] .nav-btn.is-active {
   background: rgba(255, 47, 160, 0.18);
   color: #ffd7ee;
   border-color: var(--accent);
 }
 
 /* Console lines in the endgame look like they are escaping their box. */
-html[data-phase="4"] .console-line {
+html[data-skin^="reality"] .console-line {
   text-shadow: 1px 0 rgba(51, 255, 178, 0.35);
 }
 
-html[data-phase="4"] .console-ai {
+html[data-skin^="reality"] .console-ai {
   color: #33ffb2;
 }
 
 /* Progress bars stutter. */
-html[data-phase="4"] .progress-fill,
-html[data-phase="4"] .heat-fill {
+html[data-skin^="reality"] .progress-fill,
+html[data-skin^="reality"] .heat-fill {
   background-image: repeating-linear-gradient(
     115deg,
     var(--accent) 0 10px,
@@ -143,7 +143,7 @@ html[data-phase="4"] .heat-fill {
 }
 
 /* Toast becomes a warning from the game itself. */
-html[data-phase="4"] .toast {
+html[data-skin^="reality"] .toast {
   border: 1px solid var(--accent);
   box-shadow: 0 0 30px rgba(255, 47, 160, 0.4);
 }
@@ -171,30 +171,30 @@ html[data-phase="4"] .toast {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html[data-phase="4"] .exploit-btn,
+  html[data-skin^="reality"] .exploit-btn,
   body.is-glitching .app,
-  html[data-phase="4"] .progress-fill,
-  html[data-phase="4"] .heat-fill {
+  html[data-skin^="reality"] .progress-fill,
+  html[data-skin^="reality"] .heat-fill {
     animation: none;
   }
-  html[data-phase="4"] .side-block,
-  html[data-phase="4"] .path,
-  html[data-phase="4"] .modal-card {
+  html[data-skin^="reality"] .side-block,
+  html[data-skin^="reality"] .path,
+  html[data-skin^="reality"] .modal-card {
     transform: none;
   }
 }
 
 /* --------------------------- layout for phase 4 --------------------------- */
 
-html[data-phase="4"] .heat-bar {
+html[data-skin^="reality"] .heat-bar {
   border-radius: 2px;
 }
 
-html[data-phase="4"] .stat-data .stat-value {
+html[data-skin^="reality"] .stat-data .stat-value {
   color: #ffd7ee;
   text-shadow: 0 0 14px rgba(255, 47, 160, 0.6);
 }
 
-html[data-phase="4"] .ms-mark {
+html[data-skin^="reality"] .ms-mark {
   color: var(--accent);
 }

@@ -52,7 +52,54 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
+
+/* Bulk-buy selector: ×1 / ×10 / ×100 / MAX */
+.buy-mult {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.buy-mult-btn {
+  padding: 6px 9px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.buy-mult-btn:last-child { border-right: 0; }
+
+.buy-mult-btn.is-active {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+/* Sell control sits under the row so a tap on the row still buys. */
+.up-sell {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--purple);
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.up-sell:active { transform: scale(0.97); }
 
 .toggle {
   display: inline-flex;
@@ -222,6 +269,43 @@
 
 .path .cur {
   color: var(--purple);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------- second layer: escape -------------------------- */
+
+.escape-panel {
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid var(--purple);
+  border-radius: var(--radius, 10px);
+  background: rgba(192, 132, 252, 0.05);
+}
+
+.escape-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.escape-head h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  font-size: 1rem;
+  color: var(--purple);
+}
+
+.escape-panel .btn-escape {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.escape-panel #cur-escape {
   font-size: 0.9rem;
   font-variant-numeric: tabular-nums;
 }

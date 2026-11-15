@@ -1,0 +1,487 @@
+/* ==========================================================================
+   priv-esc / phase-progress.css
+   The "it gets more advanced as you climb" layer.
+
+   terminal.css, modern.css, hologram.css and glitch.css each restyle the HUD,
+   the big click button, the heat bar, the nav and the prestige paths. They do
+   not touch the shop, the log or the settings screen, so those stayed in the
+   base look for the whole game. This file fills that gap: the same components
+   are restyled once per phase, and the polish steps up each time.
+
+   Loaded last so it wins over the base rules. Every rule is scoped to a phase.
+   ========================================================================== */
+
+/* ==========================================================================
+   TERMINAL — phases 1-2
+   Flat, square, monospaced. No shadows, no rounding, no softness.
+   ========================================================================== */
+
+html[data-skin^="terminal"] .up-row,
+html[data-skin^="terminal"] .cat-tab,
+html[data-skin^="terminal"] .sub-block,
+html[data-skin^="terminal"] .prestige-row,
+html[data-skin^="terminal"] .log-entry,
+html[data-skin^="terminal"] .setting,
+html[data-skin^="terminal"] .up-sell,
+html[data-skin^="terminal"] .buy-mult {
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+html[data-skin^="terminal"] .up-row {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--line);
+  padding: 8px 10px;
+}
+
+html[data-skin^="terminal"] .up-row.is-affordable {
+  border-left-color: var(--accent);
+}
+
+html[data-skin^="terminal"] .up-row.is-owned {
+  border-left-color: var(--text-dim);
+}
+
+/* Terminal rows read as a listing, so the name is the loud part. */
+html[data-skin^="terminal"] .up-name {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+html[data-skin^="terminal"] .up-desc {
+  font-family: var(--font-mono);
+  opacity: 0.7;
+}
+
+html[data-skin^="terminal"] .cat-tab {
+  border: 1px solid var(--line);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+}
+
+html[data-skin^="terminal"] .cat-tab.is-active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+html[data-skin^="terminal"] .sub-head h3 {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.86rem;
+}
+
+html[data-skin^="terminal"] .sub-head h3::before {
+  content: '> ';
+  color: var(--accent);
+}
+
+html[data-skin^="terminal"] .prestige-row {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--line);
+}
+
+html[data-skin^="terminal"] .pr-tier {
+  border-radius: 0;
+}
+
+html[data-skin^="terminal"] .log-entry {
+  border-bottom: 1px dashed var(--line);
+}
+
+html[data-skin^="terminal"] .setting {
+  border-bottom: 1px dashed var(--line);
+}
+
+html[data-skin^="terminal"] .up-sell {
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+}
+
+html[data-skin^="terminal"] .buy-mult {
+  border: 1px solid var(--line);
+}
+
+html[data-skin^="terminal"] .buy-mult-btn.is-active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* ==========================================================================
+   OS — phases 3-4
+   Rounded cards, soft depth, a real surface. The shop becomes a product.
+   ========================================================================== */
+
+html[data-skin^="os"] .up-row,
+html[data-skin^="os"] .cat-tab,
+html[data-skin^="os"] .prestige-row,
+html[data-skin^="os"] .setting,
+html[data-skin^="os"] .up-sell,
+html[data-skin^="os"] .buy-mult {
+  border-radius: var(--radius);
+}
+
+html[data-skin^="os"] .up-row {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+  transition: transform 120ms ease, box-shadow 160ms ease,
+    border-color 160ms ease, background 160ms ease;
+}
+
+html[data-skin^="os"] .up-row.is-affordable {
+  border-color: var(--accent);
+  box-shadow: 0 4px 18px rgba(76, 201, 240, 0.16);
+}
+
+html[data-skin^="os"] .up-row.is-affordable:active {
+  transform: scale(0.994);
+}
+
+html[data-skin^="os"] .up-name {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+html[data-skin^="os"] .cat-tab {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+html[data-skin^="os"] .cat-tab.is-active {
+  background: var(--panel-2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(76, 201, 240, 0.25) inset;
+}
+
+html[data-skin^="os"] .sub-block {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(17, 24, 32, 0.5);
+}
+
+html[data-skin^="os"] .sub-head h3 {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+/* The focus label is the first thing to give way on a narrow screen. */
+html[data-skin^="os"] .sub-focus {
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+html[data-skin^="os"] .prestige-row {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+}
+
+html[data-skin^="os"] .pr-tier {
+  border-radius: 999px;
+}
+
+html[data-skin^="os"] .log-entry {
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+html[data-skin^="os"] .setting {
+  border-bottom: 1px solid var(--line);
+}
+
+html[data-skin^="os"] .up-sell {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  border-radius: 999px;
+}
+
+html[data-skin^="os"] .buy-mult {
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+html[data-skin^="os"] .buy-mult-btn.is-active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* ==========================================================================
+   HOLO — phases 5-9
+   Hairline cyan, inner glow, corner brackets. Reads as projected light.
+   ========================================================================== */
+
+html[data-skin^="holo"] .up-row,
+html[data-skin^="holo"] .cat-tab,
+html[data-skin^="holo"] .prestige-row,
+html[data-skin^="holo"] .setting,
+html[data-skin^="holo"] .up-sell,
+html[data-skin^="holo"] .buy-mult {
+  border-radius: var(--radius-sm);
+  border-color: rgba(0, 229, 255, 0.22);
+}
+
+html[data-skin^="holo"] .up-row {
+  position: relative;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  background: linear-gradient(
+    100deg,
+    rgba(0, 229, 255, 0.05) 0%,
+    rgba(0, 229, 255, 0.01) 40%,
+    transparent 100%
+  );
+  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.04) inset;
+  transition: box-shadow 180ms ease, border-color 180ms ease,
+    background 180ms ease;
+}
+
+html[data-skin^="holo"] .up-row.is-affordable {
+  border-color: rgba(0, 229, 255, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.12) inset,
+    0 0 18px rgba(0, 229, 255, 0.14);
+}
+
+/* Corner brackets: two pseudo-elements, no extra markup. */
+html[data-skin^="holo"] .up-row::before,
+html[data-skin^="holo"] .up-row::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--accent);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+html[data-skin^="holo"] .up-row::before {
+  top: -1px;
+  left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+html[data-skin^="holo"] .up-row::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: 0;
+  border-top: 0;
+}
+
+html[data-skin^="holo"] .up-name {
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
+}
+
+html[data-skin^="holo"] .cat-tab {
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: rgba(0, 229, 255, 0.03);
+  letter-spacing: 0.06em;
+}
+
+html[data-skin^="holo"] .cat-tab.is-active {
+  border-color: var(--accent);
+  background: rgba(0, 229, 255, 0.1);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.22);
+}
+
+html[data-skin^="holo"] .sub-block {
+  padding: 12px;
+  border: 1px solid rgba(0, 229, 255, 0.14);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 229, 255, 0.02);
+}
+
+html[data-skin^="holo"] .sub-head h3 {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+html[data-skin^="holo"] .prestige-row {
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: rgba(0, 229, 255, 0.03);
+}
+
+html[data-skin^="holo"] .pr-tier {
+  border-radius: 2px;
+  border-color: rgba(0, 229, 255, 0.3);
+}
+
+html[data-skin^="holo"] .log-entry {
+  border-bottom: 1px solid rgba(0, 229, 255, 0.12);
+}
+
+html[data-skin^="holo"] .setting {
+  border-bottom: 1px solid rgba(0, 229, 255, 0.12);
+}
+
+html[data-skin^="holo"] .up-sell {
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  color: var(--accent);
+  background: rgba(0, 229, 255, 0.05);
+}
+
+html[data-skin^="holo"] .buy-mult {
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: rgba(0, 229, 255, 0.04);
+}
+
+html[data-skin^="holo"] .buy-mult-btn.is-active {
+  background: var(--accent);
+  color: #001018;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+}
+
+/* ==========================================================================
+   REALITY — phase 10
+   Chromatic edges, animated borders, glitch on touch. The machine is loose.
+   ========================================================================== */
+
+html[data-skin^="reality"] .up-row,
+html[data-skin^="reality"] .cat-tab,
+html[data-skin^="reality"] .prestige-row,
+html[data-skin^="reality"] .setting,
+html[data-skin^="reality"] .up-sell,
+html[data-skin^="reality"] .buy-mult {
+  border-radius: 2px;
+  border-color: rgba(255, 47, 160, 0.3);
+}
+
+html[data-skin^="reality"] .up-row {
+  position: relative;
+  border: 1px solid rgba(255, 47, 160, 0.28);
+  background: linear-gradient(
+    100deg,
+    rgba(255, 47, 160, 0.06) 0%,
+    rgba(51, 255, 178, 0.03) 55%,
+    transparent 100%
+  );
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+html[data-skin^="reality"] .up-row.is-affordable {
+  border-color: rgba(255, 47, 160, 0.7);
+  box-shadow:
+    0 0 0 1px rgba(255, 47, 160, 0.1) inset,
+    0 0 20px rgba(255, 47, 160, 0.16);
+}
+
+/* Split-colour edge: the two voices of the title screen, on every row. */
+html[data-skin^="reality"] .up-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-left: 2px solid rgba(51, 255, 178, 0.5);
+  border-right: 2px solid rgba(255, 47, 160, 0.5);
+  opacity: 0.7;
+}
+
+html[data-skin^="reality"] .up-row:active {
+  animation: phase4-row-tear 220ms steps(2, end);
+}
+
+@keyframes phase4-row-tear {
+  0% { transform: translateX(0); }
+  40% { transform: translateX(-3px) skewX(1.5deg); }
+  70% { transform: translateX(2px) skewX(-1deg); }
+  100% { transform: translateX(0); }
+}
+
+html[data-skin^="reality"] .up-name {
+  letter-spacing: 0.04em;
+  text-shadow:
+    1px 0 rgba(255, 47, 160, 0.55),
+    -1px 0 rgba(51, 255, 178, 0.45);
+}
+
+html[data-skin^="reality"] .cat-tab {
+  border: 1px solid rgba(255, 47, 160, 0.25);
+  background: rgba(255, 47, 160, 0.04);
+  letter-spacing: 0.06em;
+}
+
+html[data-skin^="reality"] .cat-tab.is-active {
+  border-color: var(--accent);
+  background: rgba(255, 47, 160, 0.14);
+  box-shadow: 0 0 16px rgba(255, 47, 160, 0.28);
+}
+
+html[data-skin^="reality"] .sub-block {
+  padding: 12px;
+  border: 1px solid rgba(255, 47, 160, 0.16);
+  border-radius: 2px;
+  background: rgba(255, 47, 160, 0.02);
+}
+
+html[data-skin^="reality"] .sub-head h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.88rem;
+  color: var(--accent);
+  text-shadow: 1px 0 rgba(51, 255, 178, 0.5);
+}
+
+html[data-skin^="reality"] .prestige-row {
+  border: 1px solid rgba(255, 47, 160, 0.28);
+  background: rgba(255, 47, 160, 0.04);
+}
+
+html[data-skin^="reality"] .pr-tier {
+  border-radius: 0;
+  border-color: rgba(255, 47, 160, 0.35);
+}
+
+html[data-skin^="reality"] .log-entry {
+  border-bottom: 1px solid rgba(255, 47, 160, 0.16);
+}
+
+html[data-skin^="reality"] .setting {
+  border-bottom: 1px solid rgba(255, 47, 160, 0.16);
+}
+
+html[data-skin^="reality"] .up-sell {
+  border: 1px solid rgba(51, 255, 178, 0.4);
+  color: var(--accent-2);
+  background: rgba(51, 255, 178, 0.05);
+}
+
+html[data-skin^="reality"] .buy-mult {
+  border: 1px solid rgba(255, 47, 160, 0.3);
+  background: rgba(255, 47, 160, 0.05);
+}
+
+html[data-skin^="reality"] .buy-mult-btn.is-active {
+  background: var(--accent);
+  color: #0a0006;
+  box-shadow: 0 0 14px rgba(255, 47, 160, 0.45);
+}
+
+/* The phase change itself should be felt, not just seen. */
+html[data-skin^="os"] .screen,
+html[data-skin^="holo"] .screen,
+html[data-skin^="reality"] .screen {
+  animation: phase-arrive 420ms ease both;
+}
+
+@keyframes phase-arrive {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin^="reality"] .up-row:active { animation: none; }
+  html[data-skin^="os"] .screen,
+  html[data-skin^="holo"] .screen,
+  html[data-skin^="reality"] .screen { animation: none; }
+}
