@@ -1,0 +1,884 @@
+/* ==========================================================================
+   priv-esc / base.css
+   Shared foundation layer. Loaded first, before the phase stylesheets
+   (terminal, modern, hologram, glitch). Phase layers restyle these pieces by
+   overriding the custom properties below, never by editing this file.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Design tokens
+   -------------------------------------------------------------------------- */
+:root {
+  /* Surfaces */
+  --bg: #05070a;          /* near-black page background */
+  --bg-2: #080c12;        /* raised page background, gradients */
+  --panel: #0c1118;       /* card / panel fill */
+  --panel-2: #111823;     /* nested panel fill */
+  --line: #1d2833;        /* borders and dividers */
+
+  /* Text */
+  --text: #d7e2e8;
+  --text-dim: #6e8088;    /* dim grey secondary text */
+
+  /* Signal colours */
+  --accent: #35ff8f;      /* primary green */
+  --accent-2: #28b6ff;    /* secondary cyan */
+  --danger: #ff4d6a;
+  --ok: #46e3a0;
+
+  /* Shape */
+  --radius: 10px;
+  --radius-sm: 6px;
+
+  /* Layout */
+  --hud-h: 108px;         /* nominal header height; layers may override */
+  --hud-pad: 12px;
+
+  /* Spacing scale (4px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  /* Type. The genre faces are defined in fonts.css, which loads first. */
+  --font-ui: 'Rajdhani', 'Chakra Petch', system-ui, sans-serif;
+  --font-mono: 'Share Tech Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  /* Motion */
+  --t-fast: 120ms ease;
+  --t-med: 240ms ease;
+
+  /* Heat meter colour; overridden per phase. */
+  --heat-col: var(--accent);
+}
+
+/* --------------------------------------------------------------------------
+   2. Reset
+   -------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+/* The hidden attribute must beat any display rules set below. */
+[hidden] {
+  display: none !important;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+h1,
+h2,
+h3 {
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* --------------------------------------------------------------------------
+   3. App shell
+   -------------------------------------------------------------------------- */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   4. HUD header
+   -------------------------------------------------------------------------- */
+.hud {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+  padding: calc(var(--sp-2) + env(safe-area-inset-top, 0px))
+    calc(var(--hud-pad) + env(safe-area-inset-right, 0px))
+    var(--sp-2)
+    calc(var(--hud-pad) + env(safe-area-inset-left, 0px));
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.hud-brand {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.hud-glyph {
+  color: var(--accent);
+}
+
+.hud-title {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.hud-phase {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.hud-stats {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--sp-3);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* Nav: horizontal scrolling pill row */
+.hud-nav {
+  display: flex;
+  flex: 1 0 100%;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hud-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-btn {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transition: color var(--t-fast), border-color var(--t-fast),
+    background-color var(--t-fast);
+}
+
+.nav-btn:active {
+  transform: scale(0.97);
+}
+
+.nav-btn.is-active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--panel-2);
+}
+
+/* --------------------------------------------------------------------------
+   5. Screens
+   -------------------------------------------------------------------------- */
+.screen {
+  display: none;
+}
+
+.screen.is-active {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-height: 0;
+  padding: var(--sp-3) calc(var(--sp-3) + env(safe-area-inset-right, 0px))
+    calc(var(--sp-5) + env(safe-area-inset-bottom, 0px))
+    calc(var(--sp-3) + env(safe-area-inset-left, 0px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* --------------------------------------------------------------------------
+   6. Terminal screen
+   -------------------------------------------------------------------------- */
+.terminal-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.terminal-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+/* Big tap target */
+.exploit-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-4) 0;
+}
+
+.exploit-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  width: min(64vw, 240px);
+  min-width: 180px;
+  min-height: 180px;
+  aspect-ratio: 1;
+  padding: var(--sp-3);
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--accent);
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: 0 0 0 0 rgba(53, 255, 143, 0.25);
+  transition: transform var(--t-fast), filter var(--t-fast),
+    background-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.exploit-btn:active {
+  transform: scale(0.95);
+  filter: brightness(1.3);
+  background: var(--panel-2);
+  box-shadow: 0 0 28px 4px rgba(53, 255, 143, 0.18);
+}
+
+.exploit-btn:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 4px;
+}
+
+.exploit-btn[disabled],
+.exploit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+  transform: none;
+  box-shadow: none;
+}
+
+.exploit-label {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+
+.exploit-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.exploit-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Heat meter */
+.heat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.heat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.heat-bar {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  background: var(--panel-2);
+  border-radius: 999px;
+}
+
+.heat-fill {
+  width: 0;
+  height: 100%;
+  background: var(--heat-col);
+  border-radius: inherit;
+  transition: width var(--t-med), background-color var(--t-med);
+}
+
+.heat-warn {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--danger);
+}
+
+.heat.is-critical .heat-warn {
+  display: block;
+}
+
+/* Console log */
+.console {
+  height: 160px;
+  padding: var(--sp-2) var(--sp-3);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.console-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.console-dim {
+  color: var(--text-dim);
+}
+
+/* Side rail blocks */
+.side-block {
+  padding: var(--sp-3);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.side-title {
+  margin-bottom: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+}
+
+.side-list > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.side-list dt {
+  color: var(--text-dim);
+}
+
+.side-list dd {
+  font-variant-numeric: tabular-nums;
+}
+
+.progress {
+  height: 4px;
+  margin: var(--sp-2) 0 var(--sp-1);
+  overflow: hidden;
+  background: var(--panel-2);
+  border-radius: 999px;
+}
+
+.progress-fill {
+  width: 0;
+  height: 100%;
+  background: var(--accent-2);
+  border-radius: inherit;
+  transition: width var(--t-med);
+}
+
+.milestone-list li {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 2px 0;
+}
+
+.next-up,
+.next-cost {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.next-cost {
+  color: var(--text-dim);
+}
+
+/* --------------------------------------------------------------------------
+   7. Other screens
+   -------------------------------------------------------------------------- */
+.upgrades-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.upgrades-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.cat-tabs {
+  display: flex;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.cat-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+
+.setting-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.log-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+   8. Buttons
+   -------------------------------------------------------------------------- */
+.btn-primary,
+.btn-ghost,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 var(--sp-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  transition: transform var(--t-fast), filter var(--t-fast),
+    background-color var(--t-fast), border-color var(--t-fast);
+}
+
+.btn-primary:active,
+.btn-ghost:active,
+.btn-danger:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+.btn-primary:active {
+  filter: brightness(1.15);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.btn-ghost:active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn-danger:active {
+  background: var(--danger);
+  color: var(--bg);
+  filter: brightness(1.1);
+}
+
+/* --------------------------------------------------------------------------
+   9. Toggle (checkbox + label)
+   -------------------------------------------------------------------------- */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 36px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.toggle:has(input:checked) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* --------------------------------------------------------------------------
+   10. Toast
+   -------------------------------------------------------------------------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--sp-4) + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: none;
+  width: min(92vw, 420px);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--panel-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  transform: translateX(-50%);
+  font-size: 13px;
+}
+
+.toast.is-visible {
+  display: block;
+}
+
+.toast.is-visible .toast-text {
+  animation: toast-in var(--t-med) both;
+}
+
+.toast-text {
+  color: var(--text);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   11. Modal
+   -------------------------------------------------------------------------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-4);
+  background: rgba(2, 4, 7, 0.78);
+  backdrop-filter: blur(2px);
+}
+
+.modal.is-open {
+  display: flex;
+}
+
+.modal-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  width: min(92vw, 420px);
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: var(--sp-5);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+.modal-card h3 {
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+}
+
+.offline-earned {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  color: var(--accent);
+}
+
+/* --------------------------------------------------------------------------
+   12. Boot overlay
+   -------------------------------------------------------------------------- */
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  padding: calc(var(--sp-4) + env(safe-area-inset-top, 0px))
+    calc(var(--sp-4) + env(safe-area-inset-left, 0px))
+    calc(var(--sp-4) + env(safe-area-inset-bottom, 0px))
+    calc(var(--sp-4) + env(safe-area-inset-right, 0px));
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.boot-log {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--accent);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   13. Utilities
+   -------------------------------------------------------------------------- */
+.muted {
+  color: var(--text-dim);
+}
+
+.small {
+  font-size: 12px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   14. Wide screens: terminal becomes two columns with a side rail
+   -------------------------------------------------------------------------- */
+@media (min-width: 820px) {
+  :root {
+    --hud-h: 64px;
+  }
+
+  .hud {
+    flex-wrap: nowrap;
+    padding-top: var(--sp-3);
+    padding-bottom: var(--sp-3);
+  }
+
+  .hud-nav {
+    flex: 0 1 auto;
+    justify-content: flex-end;
+  }
+
+  .screen.is-active {
+    padding: var(--sp-5);
+  }
+
+  #screen-terminal.is-active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--sp-5);
+    overflow: hidden;
+  }
+
+  .terminal-main {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: var(--sp-2);
+  }
+
+  .terminal-side {
+    align-self: stretch;
+    overflow-y: auto;
+    padding-left: var(--sp-4);
+    border-left: 1px solid var(--line);
+  }
+
+  .exploit-btn {
+    width: 220px;
+    min-height: 220px;
+  }
+
+  .console {
+    height: 220px;
+  }
+
+  .modal-card {
+    width: 460px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   15. Reduced motion
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

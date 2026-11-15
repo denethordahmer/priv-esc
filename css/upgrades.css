@@ -1,0 +1,627 @@
+/* --------------------------------------------------------------------------
+   upgrade-layout.css — structure for the Upgrades and Prestige screens
+   These carry layout only. Colours and decoration come from the phase sheets
+   loaded after this file (terminal / modern / hologram / glitch).
+   -------------------------------------------------------------------------- */
+
+/* ---------------------------- category tabs ---------------------------- */
+
+.cat-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 10px;
+  scrollbar-width: none;
+}
+
+.cat-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 8px);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cat-tab.is-active {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.cat-icon {
+  font-size: 1em;
+  line-height: 1;
+}
+
+/* --------------------------- upgrades toolbar --------------------------- */
+
+.upgrades-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.upgrades-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* ------------------------------ sub blocks ------------------------------ */
+
+.sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 28px;
+}
+
+.sub-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sub-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 2px;
+}
+
+.sub-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.sub-focus {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ------------------------------ upgrade row ----------------------------- */
+
+.up-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "name meta"
+    "desc meta";
+  align-items: center;
+  gap: 2px 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 8px);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  opacity: 0.62;
+  transition: opacity 120ms ease, border-color 120ms ease, transform 90ms ease;
+}
+
+.up-row.is-owned {
+  opacity: 0.8;
+}
+
+.up-row.is-affordable {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+.up-row.is-maxed {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.up-row:active:not(.is-maxed) {
+  transform: scale(0.992);
+}
+
+.up-name {
+  grid-area: name;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.up-desc {
+  grid-area: desc;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.up-meta {
+  grid-area: meta;
+  display: grid;
+  grid-template-columns: auto;
+  justify-items: end;
+  gap: 2px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.up-owned {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+}
+
+.up-effect {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.up-cost {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.up-row.is-affordable .up-cost {
+  color: var(--accent);
+}
+
+/* ---------------------------- prestige screen ---------------------------- */
+
+.prestige-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 16px;
+}
+
+.prestige-head h2 {
+  margin: 0;
+}
+
+.prestige-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.prestige-paths {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 28px;
+}
+
+.path {
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 10px);
+  padding: 14px;
+}
+
+.path h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.path .cur {
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.path-upgrades {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prestige-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "name cost"
+    "desc cost"
+    "tiers tiers";
+  align-items: center;
+  gap: 2px 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 8px);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.prestige-row.is-affordable {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+.prestige-row.is-maxed {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pr-name { grid-area: name; font-weight: 600; font-size: 0.95rem; }
+.pr-desc { grid-area: desc; color: var(--text-dim); font-size: 0.78rem; }
+.pr-cost { grid-area: cost; font-weight: 600; white-space: nowrap; }
+
+.pr-tiers {
+  grid-area: tiers;
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.pr-tier {
+  flex: 1;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.pr-tier.is-bought {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ------------------------------ log screen ------------------------------ */
+
+.log-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 28px;
+}
+
+.log-entry {
+  display: flex;
+  gap: 10px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.log-time {
+  flex: 0 0 auto;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-text { flex: 1; }
+
+.log-ai { font-style: italic; }
+
+/* ---------------------------- settings screen --------------------------- */
+
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 560px;
+  padding-bottom: 24px;
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 8px);
+}
+
+.setting-value {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+/* ------------------------------ milestone list --------------------------- */
+
+.milestone-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.milestone-list li {
+  display: grid;
+  grid-template-columns: 14px auto 1fr;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.milestone-list li.is-done {
+  color: var(--text);
+}
+
+.ms-mark { color: var(--accent); }
+.ms-at {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+.ms-text { font-style: italic; }
+
+/* ------------------------------ offline modal --------------------------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.modal[hidden] { display: none; }
+
+.modal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 12px);
+  background: var(--bg-2);
+  text-align: center;
+}
+
+.modal-card h3 { margin: 0; }
+
+.offline-earned {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* -------------------------------- toast --------------------------------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  z-index: 70;
+  transform: translate(-50%, 12px);
+  min-width: 220px;
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius, 10px);
+  background: var(--bg-2);
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.toast[hidden] { display: none; }
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.toast-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+/* -------------------------------- boot ---------------------------------- */
+
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  padding: 24px;
+  background: #000;
+  color: #33ff77;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  transition: opacity 400ms ease;
+}
+
+.boot.is-gone { opacity: 0; pointer-events: none; }
+
+.boot-log {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* Small screens: keep the exploit button comfortable but not huge. */
+@media (max-width: 420px) {
+  .up-row {
+    grid-template-areas:
+      "name name"
+      "desc desc"
+      "meta meta";
+    grid-template-columns: 1fr;
+  }
+  .up-meta {
+    justify-items: start;
+    grid-auto-flow: column;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+}
+/* --------------------------------------------------------------------------
+   Typography roles
+   Headers use the display face, body copy the condensed techno sans, and
+   numbers the technical monospace. All are bundled in fonts.css.
+   -------------------------------------------------------------------------- */
+
+.hud-title,
+.screen h2,
+.sub-head h3,
+.path h3,
+.modal-card h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+}
+
+.cat-tab,
+.nav-btn,
+.btn-primary,
+.btn-ghost,
+.btn-danger,
+.title-start,
+.title-secondary,
+.sub-focus,
+.stat-label,
+.side-title {
+  font-family: var(--font-heading);
+  letter-spacing: 0.08em;
+}
+
+.up-name,
+.pr-name,
+.setting,
+.log-text,
+.milestone-list li,
+.up-desc,
+.pr-desc,
+.muted {
+  font-family: var(--font-body);
+}
+
+.up-cost,
+.up-owned,
+.up-effect,
+.pr-cost,
+.pr-tier,
+.stat-value,
+.stat-sub,
+.side-list dd,
+.next-cost,
+.heat-num,
+.log-time,
+.offline-earned {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The boot log and console keep the technical mono face. */
+.boot-log,
+.console-line {
+  font-family: var(--font-mono);
+}
+
+/* --------------------------------------------------------------------------
+   HUD fit for the pixel display face
+   Press Start 2P is very wide, so the brand and stat labels need tighter
+   sizing and must not wrap on a phone.
+   -------------------------------------------------------------------------- */
+
+.hud-brand {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.hud-title {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.hud-phase {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.hud-stats {
+  flex-wrap: nowrap;
+  align-items: flex-end;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  white-space: nowrap;
+}
+
+.stat-label {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+}
+
+.stat-value {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.stat-sub {
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.nav-btn {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  padding: 8px 10px;
+}
+
+@media (max-width: 420px) {
+  .hud-title { font-size: 11px; }
+  .stat-value { font-size: 17px; }
+  .nav-btn { font-size: 8px; padding: 7px 8px; }
+}
+
+/* Keep the two header stats on a shared baseline. */
+.hud-stats {
+  align-items: stretch;
+}
+
+.stat {
+  justify-content: flex-start;
+}
+
+.stat-clock {
+  justify-content: flex-start;
+}
+
+.stat-clock .stat-value {
+  margin-top: 0;
+}

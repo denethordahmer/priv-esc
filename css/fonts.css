@@ -1,0 +1,108 @@
+/* =========================================================================
+   fonts.css — bundled genre typefaces
+   All ten are cyberpunk / hacker / retro-terminal faces, self-hosted so the
+   game works with no network. Files live in /fonts as .woff2.
+   ========================================================================= */
+
+/* --- Display / title faces ------------------------------------------------ */
+
+/* Heavy geometric sci-fi. The closest match to the mockup's blocky title. */
+@font-face {
+  font-family: 'Orbitron';
+  src: url('../fonts/orbitron.woff2') format('woff2');
+  font-weight: 400 900;
+  font-display: swap;
+}
+
+/* Wide, angular, techno. Good for section headers. */
+@font-face {
+  font-family: 'Oxanium';
+  src: url('../fonts/oxanium.woff2') format('woff2');
+  font-weight: 400 800;
+  font-display: swap;
+}
+
+/* Rounded techno with a friendly edge. Reads well at small sizes. */
+@font-face {
+  font-family: 'Audiowide';
+  src: url('../fonts/audiowide.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* Very wide, minimal, futuristic. Best for short labels only. */
+@font-face {
+  font-family: 'Michroma';
+  src: url('../fonts/michroma.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* Wide, spaced-out capitals. Strong for menu buttons. */
+@font-face {
+  font-family: 'Syncopate';
+  src: url('../fonts/syncopate.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+/* --- Body / UI faces ------------------------------------------------------ */
+
+/* Condensed techno sans. Compact, so it fits a phone screen well. */
+@font-face {
+  font-family: 'Rajdhani';
+  src: url('../fonts/rajdhani.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+/* Squared-off techno sans with a mechanical feel. */
+@font-face {
+  font-family: 'Chakra Petch';
+  src: url('../fonts/chakra-petch.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+/* --- Terminal / mono faces ------------------------------------------------ */
+
+/* Clean technical monospace. The workhorse for numbers and logs. */
+@font-face {
+  font-family: 'Share Tech Mono';
+  src: url('../fonts/share-tech-mono.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* Chunky CRT terminal. Authentic but tiring in long paragraphs. */
+@font-face {
+  font-family: 'VT323';
+  src: url('../fonts/vt323.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* 8-bit pixel font. For the boot screen and small accents only. */
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('../fonts/press-start-2p.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* --- Role assignments ----------------------------------------------------- */
+
+:root {
+  /* Headers, titles, the game name. Owner's pick: #10 Press Start 2P. */
+  --font-display: 'Press Start 2P', monospace;
+  /* Section headers and menu buttons. */
+  --font-heading: 'Press Start 2P', monospace;
+  /* Body copy, descriptions, labels. Owner's pick: #5 VT323. */
+  --font-body: 'VT323', monospace;
+  /* Numbers, logs, terminal output. */
+  --font-mono: 'VT323', monospace;
+  /* Small accents and the boot sequence. */
+  --font-pixel: 'Press Start 2P', monospace;
+  /* Alternate display, used for the corrupted endgame title. */
+  --font-alt: 'Michroma', 'Syncopate', sans-serif;
+}

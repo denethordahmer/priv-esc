@@ -1,0 +1,368 @@
+/* ==========================================================================
+   priv-esc / hologram.css
+   Phase 3 skin. After the first cloud ascension the UI becomes a holographic
+   projection. Loaded after base.css; every rule is gated on
+   html[data-phase="3"] so this layer is inert in every other phase.
+   No imports, no webfont requests, no JavaScript.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Tokens and type
+   -------------------------------------------------------------------------- */
+html[data-phase="3"] {
+  /* Surfaces */
+  --bg: #03060f;
+  --bg-2: #060b18;
+  --panel: rgba(8, 16, 32, 0.55);
+  --panel-2: rgba(12, 24, 48, 0.6);
+  --line: rgba(0, 229, 255, 0.28);
+
+  /* Text */
+  --text: #d6f7ff;
+
+  /* Signal colours */
+  --accent: #00e5ff;
+  --accent-2: #ff2fd0;
+  --heat-col: #00e5ff;
+
+  /* Type: local or system faces only */
+  --font-ui: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+/* Chrome and headings use the geometric face; numeric readouts stay mono. */
+html[data-phase="3"] .hud-title,
+html[data-phase="3"] .hud-phase,
+html[data-phase="3"] .nav-btn,
+html[data-phase="3"] .exploit-label,
+html[data-phase="3"] .exploit-hint,
+html[data-phase="3"] .side-title,
+html[data-phase="3"] .heat-head,
+html[data-phase="3"] .path h3,
+html[data-phase="3"] h2,
+html[data-phase="3"] .btn-primary,
+html[data-phase="3"] .btn-ghost,
+html[data-phase="3"] .btn-danger,
+html[data-phase="3"] .toggle {
+  font-family: var(--font-ui);
+}
+
+/* --------------------------------------------------------------------------
+   2. App backdrop: drifting projection wash + scanlines
+   -------------------------------------------------------------------------- */
+html[data-phase="3"] .app {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(
+      58% 58% at 22% 18%,
+      rgba(0, 229, 255, 0.16),
+      rgba(0, 229, 255, 0) 62%
+    ),
+    radial-gradient(
+      52% 52% at 78% 76%,
+      rgba(255, 47, 208, 0.13),
+      rgba(255, 47, 208, 0) 64%
+    );
+  background-size: 180% 180%, 180% 180%;
+  background-repeat: no-repeat;
+  background-position: 15% 10%, 85% 85%;
+  animation: holo-drift 28s ease-in-out infinite alternate;
+}
+
+@keyframes holo-drift {
+  0% {
+    background-position: 15% 10%, 85% 85%;
+  }
+  50% {
+    background-position: 55% 45%, 45% 40%;
+  }
+  100% {
+    background-position: 95% 80%, 5% 15%;
+  }
+}
+
+/* Drawn by .app::after so no extra markup is required; the .scanlines class
+   is also covered in case an overlay element is placed inside .app. */
+html[data-phase="3"] .app::after,
+html[data-phase="3"] .scanlines {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 229, 255, 0.05) 0,
+    rgba(0, 229, 255, 0.05) 1px,
+    rgba(0, 229, 255, 0) 1px,
+    rgba(0, 229, 255, 0) 3px
+  );
+}
+
+/* --------------------------------------------------------------------------
+   3. Glowing frames: header, side rail, prestige paths
+   -------------------------------------------------------------------------- */
+html[data-phase="3"] .hud,
+html[data-phase="3"] .side-block,
+html[data-phase="3"] .path {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow:
+    0 0 18px rgba(0, 229, 255, 0.1),
+    0 0 3px rgba(0, 229, 255, 0.25),
+    inset 0 0 14px rgba(0, 229, 255, 0.06);
+}
+
+html[data-phase="3"] .hud {
+  background: linear-gradient(
+    180deg,
+    rgba(6, 11, 24, 0.92),
+    rgba(6, 11, 24, 0.62)
+  );
+}
+
+html[data-phase="3"] .path {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--radius);
+}
+
+html[data-phase="3"] .hud-title {
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 14px rgba(0, 229, 255, 0.55);
+}
+
+html[data-phase="3"] .hud-glyph,
+html[data-phase="3"] .side-title,
+html[data-phase="3"] .path h3 {
+  color: var(--accent);
+}
+
+html[data-phase="3"] .side-title,
+html[data-phase="3"] .path h3 {
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   4. Exploit button: ring + pulsing halo
+   -------------------------------------------------------------------------- */
+html[data-phase="3"] .exploit-btn {
+  position: relative;
+  border: 1px solid var(--accent);
+  background: radial-gradient(
+    circle at 50% 38%,
+    rgba(0, 229, 255, 0.16),
+    rgba(6, 12, 24, 0.88) 72%
+  );
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.12),
+    0 0 26px rgba(0, 229, 255, 0.22),
+    inset 0 0 26px rgba(0, 229, 255, 0.1);
+}
+
+/* Outer ring: expands and brightens on a slow pulse. */
+html[data-phase="3"] .exploit-btn::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 1px solid rgba(0, 229, 255, 0.55);
+  border-radius: 50%;
+  box-shadow:
+    0 0 22px rgba(0, 229, 255, 0.28),
+    inset 0 0 20px rgba(0, 229, 255, 0.1);
+  pointer-events: none;
+  animation: holo-halo 3.4s ease-in-out infinite;
+}
+
+@keyframes holo-halo {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.03);
+  }
+}
+
+html[data-phase="3"] .exploit-btn:active {
+  background: radial-gradient(
+    circle at 50% 38%,
+    rgba(0, 229, 255, 0.3),
+    rgba(6, 12, 24, 0.92) 72%
+  );
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.5),
+    0 0 48px rgba(0, 229, 255, 0.35),
+    inset 0 0 34px rgba(0, 229, 255, 0.2);
+}
+
+html[data-phase="3"] .exploit-btn[disabled]::after,
+html[data-phase="3"] .exploit-btn:disabled::after {
+  animation: none;
+  opacity: 0.15;
+}
+
+html[data-phase="3"] .exploit-label {
+  letter-spacing: 0.14em;
+  text-shadow: 0 0 16px rgba(0, 229, 255, 0.6);
+}
+
+html[data-phase="3"] .exploit-sub {
+  color: rgba(214, 247, 255, 0.62);
+}
+
+html[data-phase="3"] .exploit-hint {
+  color: rgba(0, 229, 255, 0.72);
+  letter-spacing: 0.18em;
+}
+
+/* --------------------------------------------------------------------------
+   5. Console: slowly falling data stream
+   -------------------------------------------------------------------------- */
+html[data-phase="3"] .console {
+  background-color: rgba(6, 12, 24, 0.72);
+  background-image: linear-gradient(
+    180deg,
+    rgba(0, 229, 255, 0) 0%,
+    rgba(0, 229, 255, 0.07) 18%,
+    rgba(0, 229, 255, 0) 34%,
+    rgba(255, 47, 208, 0.05) 52%,
+    rgba(0, 229, 255, 0) 68%,
+    rgba(0, 229, 255, 0.06) 86%,
+    rgba(0, 229, 255, 0) 100%
+  );
+  background-size: 100% 200%;
+  border-color: rgba(0, 229, 255, 0.18);
+  animation: holo-stream 12s linear infinite;
+}
+
+@keyframes holo-stream {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 100%;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6. Meters: neon fills
+   -------------------------------------------------------------------------- */
+html[data-phase="3"] .progress,
+html[data-phase="3"] .heat-bar {
+  background: rgba(0, 229, 255, 0.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 229, 255, 0.16),
+    inset 0 0 8px rgba(0, 229, 255, 0.1);
+}
+
+html[data-phase="3"] .progress-fill,
+html[data-phase="3"] .heat-fill {
+  background-color: var(--accent);
+  background-image: linear-gradient(90deg, #00e5ff, #8bf7ff 45%, #ff2fd0);
+  box-shadow:
+    0 0 8px rgba(0, 229, 255, 0.55),
+    0 0 18px rgba(255, 47, 208, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   7. Navigation: neon underline, filled active tab
+   -------------------------------------------------------------------------- */
+html[data-phase="3"] .nav-btn {
+  position: relative;
+  border-color: transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(214, 247, 255, 0.58);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color 180ms ease, background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+html[data-phase="3"] .nav-btn::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 0;
+  left: 4px;
+  height: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.9);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 180ms ease;
+  pointer-events: none;
+}
+
+html[data-phase="3"] .nav-btn:hover,
+html[data-phase="3"] .nav-btn:focus-visible {
+  color: var(--accent);
+}
+
+html[data-phase="3"] .nav-btn:hover::after,
+html[data-phase="3"] .nav-btn:focus-visible::after,
+html[data-phase="3"] .nav-btn.is-active::after {
+  transform: scaleX(1);
+}
+
+html[data-phase="3"] .nav-btn.is-active {
+  color: var(--accent);
+  border-color: rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.14);
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   8. Screens
+   -------------------------------------------------------------------------- */
+html[data-phase="3"] .screen.is-active {
+  animation: holo-screen-in 320ms ease-out both;
+}
+
+@keyframes holo-screen-in {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   9. Reduced motion
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html[data-phase="3"] .app {
+    animation: none;
+    background-position: 15% 10%, 85% 85%;
+  }
+
+  html[data-phase="3"] .exploit-btn::after {
+    animation: none;
+    opacity: 0.5;
+  }
+
+  html[data-phase="3"] .console {
+    animation: none;
+    background-position: 0 0;
+  }
+
+  html[data-phase="3"] .screen.is-active {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

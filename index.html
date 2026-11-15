@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" data-phase="1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05070a">
+<title>priv-esc</title>
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/upgrades.css">
+<link rel="stylesheet" href="css/title.css">
+<link rel="stylesheet" href="css/terminal.css">
+<link rel="stylesheet" href="css/modern.css">
+<link rel="stylesheet" href="css/hologram.css">
+<link rel="stylesheet" href="css/glitch.css">
+</head>
+<body>
+
+<!-- Boot screen -->
+<div id="boot" class="boot">
+  <pre class="boot-log" id="boot-log"></pre>
+</div>
+
+<!-- Title screen -->
+<div id="title-screen" class="title-screen" hidden>
+  <div class="title-frame">
+
+    <div class="title-hex title-hex--top" id="title-hex-top"></div>
+
+    <div class="title-logo">
+      <h1 class="title-word" id="title-word">PRIV-ESC</h1>
+      <div class="title-rule"></div>
+      <div class="title-brackets-bottom"></div>
+    </div>
+
+    <div class="title-hex title-hex--bottom" id="title-hex-bottom"></div>
+
+    <div class="title-grid"></div>
+
+    <div class="title-menu">
+      <button class="title-start" id="title-start"><span>START</span></button>
+      <div class="title-row">
+        <button class="title-secondary" id="title-options">OPTIONS</button>
+        <button class="title-secondary" id="title-credits">CREDITS</button>
+      </div>
+    </div>
+
+    <div class="title-status">
+      <span class="title-status-label">SYSTEM READY</span>
+      <span class="title-status-bars"><i></i><i></i><i></i></span>
+      <span class="title-status-pct" id="title-pct">100%</span>
+    </div>
+    <div class="title-progress" id="title-progress"></div>
+
+  </div>
+</div>
+
+<div id="app" class="app" hidden>
+
+  <!-- ================= HEADER ================= -->
+  <header class="hud">
+    <div class="hud-brand">
+      <span class="hud-glyph" id="hud-glyph">▮</span>
+      <span class="hud-title" id="hud-title">priv-esc</span>
+      <span class="hud-phase" id="hud-phase">v0.1</span>
+    </div>
+
+    <div class="hud-stats">
+      <div class="stat stat-data">
+        <span class="stat-label">DATA</span>
+        <span class="stat-value" id="stat-data">0</span>
+        <span class="stat-sub" id="stat-rate">+0 /s</span>
+      </div>
+      <div class="stat stat-clock" id="stat-clock-wrap">
+        <span class="stat-label">UPTIME</span>
+        <span class="stat-value" id="stat-clock">00:00</span>
+      </div>
+    </div>
+
+    <nav class="hud-nav">
+      <button class="nav-btn is-active" data-screen="terminal">Terminal</button>
+      <button class="nav-btn" data-screen="upgrades">Upgrades</button>
+      <button class="nav-btn" data-screen="prestige" id="nav-prestige" hidden>Prestige</button>
+      <button class="nav-btn" data-screen="log" id="nav-log" hidden>Log</button>
+      <button class="nav-btn" data-screen="settings">Settings</button>
+    </nav>
+  </header>
+
+  <!-- ================= TERMINAL SCREEN ================= -->
+  <main class="screen is-active" id="screen-terminal">
+
+    <section class="terminal-main">
+      <div class="exploit-wrap">
+        <button id="btn-exploit" class="exploit-btn">
+          <span class="exploit-label">RUN EXPLOIT</span>
+          <span class="exploit-sub" id="exploit-sub">+1.0 DATA / CLICK</span>
+        </button>
+        <div class="exploit-hint" id="exploit-hint">tap or press SPACE</div>
+      </div>
+
+      <div class="heat" id="heat-panel">
+        <div class="heat-head">
+          <span class="heat-label">HEAT</span>
+          <span class="heat-num" id="heat-num">0%</span>
+        </div>
+        <div class="heat-bar"><div class="heat-fill" id="heat-fill"></div></div>
+        <div class="heat-warn" id="heat-warn">CRITICAL — SERVER WILL CRASH</div>
+      </div>
+
+      <div class="console" id="console">
+        <div class="console-line console-dim">&gt; exploit daemon initialised</div>
+      </div>
+    </section>
+
+    <aside class="terminal-side">
+      <div class="side-block">
+        <h3 class="side-title">RATE</h3>
+        <dl class="side-list">
+          <div><dt>per click</dt><dd id="side-per-click">1.0</dd></div>
+          <div><dt>auto /s</dt><dd id="side-auto">0</dd></div>
+          <div><dt>idle /s</dt><dd id="side-idle">0</dd></div>
+          <div><dt>multiplier</dt><dd id="side-mult">x1.00</dd></div>
+        </dl>
+      </div>
+
+      <div class="side-block">
+        <h3 class="side-title">NEXT</h3>
+        <div class="next-up" id="next-upgrade">
+          <span class="next-name">—</span>
+        </div>
+        <div class="progress"><div class="progress-fill" id="next-progress"></div></div>
+        <div class="next-cost" id="next-cost">—</div>
+      </div>
+
+      <div class="side-block" id="milestone-block">
+        <h3 class="side-title">MILESTONES</h3>
+        <ul class="milestone-list" id="milestone-list"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ================= UPGRADES SCREEN ================= -->
+  <main class="screen" id="screen-upgrades">
+    <div class="upgrades-head">
+      <div class="cat-tabs" id="cat-tabs"></div>
+      <div class="upgrades-tools">
+        <label class="toggle">
+          <input type="checkbox" id="toggle-buyable">
+          <span>Affordable only</span>
+        </label>
+        <button class="btn-ghost" id="btn-buy-best">Buy best</button>
+      </div>
+    </div>
+    <div class="sub-list" id="sub-list"></div>
+  </main>
+
+  <!-- ================= PRESTIGE SCREEN ================= -->
+  <main class="screen" id="screen-prestige">
+    <div class="prestige-head">
+      <h2>Ascension</h2>
+      <p class="muted" id="prestige-earned-line">Reach 1 Trillion Data to ascend.</p>
+      <div class="prestige-actions">
+        <button class="btn-primary" id="btn-prestige-cloud">Cloud Ascension</button>
+        <button class="btn-primary" id="btn-prestige-grid">Grid Takeover</button>
+      </div>
+      <p class="muted small" id="prestige-warn">Ascending resets Data and normal upgrades.</p>
+    </div>
+
+    <div class="prestige-paths">
+      <section class="path" id="path-cloud">
+        <h3>Cloud Ascension <span class="cur" id="cur-cloud">0 EB</span></h3>
+        <div class="path-upgrades" id="list-cloud"></div>
+      </section>
+      <section class="path" id="path-grid">
+        <h3>Grid Takeover <span class="cur" id="cur-grid">0 GN</span></h3>
+        <div class="path-upgrades" id="list-grid"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ================= LOG SCREEN ================= -->
+  <main class="screen" id="screen-log">
+    <h2>Narrative Log</h2>
+    <div class="log-body" id="log-body"></div>
+  </main>
+
+  <!-- ================= SETTINGS SCREEN ================= -->
+  <main class="screen" id="screen-settings">
+    <h2>Settings</h2>
+    <div class="settings-grid">
+      <div class="setting">
+        <span>Save game</span>
+        <button class="btn-ghost" id="btn-save">Save now</button>
+      </div>
+      <div class="setting">
+        <span>Auto-save</span>
+        <span class="setting-value" id="setting-autosave">every 15s</span>
+      </div>
+      <div class="setting">
+        <span>Wipe save</span>
+        <button class="btn-danger" id="btn-wipe">Delete everything</button>
+      </div>
+      <div class="setting">
+        <span>Export save</span>
+        <button class="btn-ghost" id="btn-export">Copy to clipboard</button>
+      </div>
+      <div class="setting">
+        <span>Import save</span>
+        <button class="btn-ghost" id="btn-import">Paste from clipboard</button>
+      </div>
+    </div>
+    <p class="muted small" id="save-status">—</p>
+  </main>
+
+  <!-- ================= MILESTONE TOAST ================= -->
+  <div class="toast" id="toast" hidden>
+    <div class="toast-text" id="toast-text"></div>
+  </div>
+
+  <!-- ================= OFFLINE SUMMARY ================= -->
+  <div class="modal" id="offline-modal" hidden>
+    <div class="modal-card">
+      <h3>While you were gone</h3>
+      <p class="muted" id="offline-time">—</p>
+      <p class="offline-earned" id="offline-earned">+0 Data</p>
+      <button class="btn-primary" id="offline-close">Resume</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/data-upgrades.js"></script>
+<script src="js/format.js"></script>
+<script src="js/state.js"></script>
+<script src="js/save.js"></script>
+<script src="js/economy.js"></script>
+<script src="js/heat.js"></script>
+<script src="js/milestones.js"></script>
+<script src="js/prestige.js"></script>
+<script src="js/narrative.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/phases.js"></script>
+<script src="js/title.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

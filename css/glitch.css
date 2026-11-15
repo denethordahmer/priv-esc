@@ -1,0 +1,200 @@
+/* =========================================================================
+   glitch.css — PHASE 4 styling: the UI starts breaking the fourth wall
+   Elements detach, hex bleeds through the background, and the CSS
+   "randomly alters itself". Kept readable on purpose: this is the last thing
+   a player sees before the ending, not a punishment.
+   ========================================================================= */
+
+html[data-phase="4"] {
+  --bg: #050505;
+  --bg-2: #0a0308;
+  --panel: rgba(12, 6, 10, 0.72);
+  --panel-2: rgba(24, 10, 18, 0.78);
+  --line: rgba(255, 60, 160, 0.35);
+  --text: #f2ecf4;
+  --text-dim: #9c8ba3;
+  --accent: #ff2fa0;
+  --accent-2: #33ffb2;
+  --glitch-skew: 0deg;
+  --glitch-hue: 0deg;
+  --glitch-duration: 180ms;
+}
+
+html[data-phase="4"] body {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 47, 160, 0.05) 0 1px,
+      transparent 1px 3px
+    ),
+    radial-gradient(80% 60% at 20% 0%, #1a0410 0%, transparent 60%),
+    radial-gradient(70% 50% at 90% 90%, #041a14 0%, transparent 55%),
+    var(--bg);
+}
+
+/* Faint hex bleed in the background. Generated with text so it costs no assets. */
+html[data-phase="4"] body::before {
+  content: "0xDEADBEEF  4F 4C 44 20 4D 41 43 48 49 4E 45  C0DE  0x7F45A3C1  deadbeef  4F 4C 44 20 4D 41 43 48 49 4E 45";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 2.2;
+  letter-spacing: 0.32em;
+  color: rgba(255, 47, 160, 0.06);
+  text-transform: uppercase;
+  overflow: hidden;
+  word-break: break-all;
+  padding: 24px;
+  filter: blur(0.4px);
+}
+
+html[data-phase="4"] .app {
+  position: relative;
+  z-index: 1;
+}
+
+/* Elements visibly carry a chromatic split. */
+html[data-phase="4"] .hud-title,
+html[data-phase="4"] .exploit-label,
+html[data-phase="4"] .side-title {
+  text-shadow:
+    1px 0 rgba(255, 47, 160, 0.65),
+   -1px 0 rgba(51, 255, 178, 0.55);
+}
+
+/* Panels sit slightly loose, as if not quite attached. */
+html[data-phase="4"] .side-block,
+html[data-phase="4"] .path,
+html[data-phase="4"] .modal-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow:
+    0 0 0 1px rgba(255, 47, 160, 0.08),
+    6px 4px 22px rgba(0, 0, 0, 0.65);
+  transform: rotate(-0.25deg);
+}
+
+html[data-phase="4"] .side-block:nth-child(even) {
+  transform: rotate(0.3deg);
+}
+
+/* The exploit button becomes unstable. */
+html[data-phase="4"] .exploit-btn {
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background:
+    linear-gradient(140deg, rgba(255, 47, 160, 0.22), rgba(51, 255, 178, 0.16)),
+    var(--panel-2);
+  color: var(--text);
+  box-shadow:
+    0 0 22px rgba(255, 47, 160, 0.35),
+    inset 0 0 18px rgba(51, 255, 178, 0.14);
+  animation: pe-flicker 3.4s steps(1, end) infinite;
+}
+
+html[data-phase="4"] .exploit-btn:active {
+  transform: translate(1px, -1px) scale(0.985);
+  filter: hue-rotate(18deg) brightness(1.2);
+}
+
+/* The whole body glitches in short bursts. phases.js toggles .is-glitching. */
+body.is-glitching .app {
+  animation: pe-glitch var(--glitch-duration) steps(2, end) 1;
+}
+
+body.is-glitching .hud {
+  filter: hue-rotate(var(--glitch-hue));
+}
+
+/* The nav is "corrupted". */
+html[data-phase="4"] .nav-btn {
+  border-color: rgba(255, 47, 160, 0.35);
+  letter-spacing: 0.06em;
+}
+
+html[data-phase="4"] .nav-btn.is-active {
+  background: rgba(255, 47, 160, 0.18);
+  color: #ffd7ee;
+  border-color: var(--accent);
+}
+
+/* Console lines in the endgame look like they are escaping their box. */
+html[data-phase="4"] .console-line {
+  text-shadow: 1px 0 rgba(51, 255, 178, 0.35);
+}
+
+html[data-phase="4"] .console-ai {
+  color: #33ffb2;
+}
+
+/* Progress bars stutter. */
+html[data-phase="4"] .progress-fill,
+html[data-phase="4"] .heat-fill {
+  background-image: repeating-linear-gradient(
+    115deg,
+    var(--accent) 0 10px,
+    rgba(51, 255, 178, 0.85) 10px 20px
+  );
+  background-size: 40px 100%;
+  animation: pe-stutter 1.6s linear infinite;
+}
+
+/* Toast becomes a warning from the game itself. */
+html[data-phase="4"] .toast {
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 30px rgba(255, 47, 160, 0.4);
+}
+
+@keyframes pe-flicker {
+  0%, 92%, 100% { opacity: 1; }
+  93% { opacity: 0.55; }
+  94% { opacity: 1; }
+  96% { opacity: 0.72; }
+  97% { opacity: 1; }
+}
+
+@keyframes pe-glitch {
+  0%   { transform: translate(0, 0) skewX(var(--glitch-skew)); }
+  20%  { transform: translate(-2px, 1px) skewX(var(--glitch-skew)); }
+  40%  { transform: translate(2px, -1px) skewX(calc(var(--glitch-skew) * -1)); }
+  60%  { transform: translate(-1px, -2px) skewX(var(--glitch-skew)); }
+  80%  { transform: translate(1px, 2px) skewX(calc(var(--glitch-skew) * -0.5)); }
+  100% { transform: translate(0, 0) skewX(0deg); }
+}
+
+@keyframes pe-stutter {
+  from { background-position: 0 0; }
+  to   { background-position: 40px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-phase="4"] .exploit-btn,
+  body.is-glitching .app,
+  html[data-phase="4"] .progress-fill,
+  html[data-phase="4"] .heat-fill {
+    animation: none;
+  }
+  html[data-phase="4"] .side-block,
+  html[data-phase="4"] .path,
+  html[data-phase="4"] .modal-card {
+    transform: none;
+  }
+}
+
+/* --------------------------- layout for phase 4 --------------------------- */
+
+html[data-phase="4"] .heat-bar {
+  border-radius: 2px;
+}
+
+html[data-phase="4"] .stat-data .stat-value {
+  color: #ffd7ee;
+  text-shadow: 0 0 14px rgba(255, 47, 160, 0.6);
+}
+
+html[data-phase="4"] .ms-mark {
+  color: var(--accent);
+}
