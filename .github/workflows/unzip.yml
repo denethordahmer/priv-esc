@@ -114,6 +114,17 @@ jobs:
           echo "  html files: $(find "$SRC" -maxdepth 2 -name '*.html' | wc -l)"
           echo "  total files: $(find "$SRC" -type f | wc -l)"
 
+          # Audio is part of the game now. Report what came in so a missing or
+          # misnamed track is visible in the log rather than silent.
+          MP3_COUNT=$(find "$SRC" -name '*.mp3' -type f -not -path '*/__MACOSX/*' | wc -l)
+          echo "  mp3 files: $MP3_COUNT"
+          if [ "$MP3_COUNT" -gt 0 ]; then
+            find "$SRC" -name '*.mp3' -type f -not -path '*/__MACOSX/*' \
+              -printf '    %P (%s bytes)\n' | sort
+          else
+            echo "::notice::No .mp3 files in this archive. The music folder in the repo is kept as it is."
+          fi
+
           # A priv-esc zip must carry its code with it. If only index.html
           # is present, the unpack would wipe the game logic, so refuse it.
           if [ ! -f "$SRC/index.html" ]; then
@@ -126,6 +137,7 @@ jobs:
           fi
 
           echo "SRC=$SRC" >> "$GITHUB_ENV"
+          echo "MP3_COUNT=$MP3_COUNT" >> "$GITHUB_ENV"
 
       - name: Copy payload over the working tree
         if: steps.guard.outputs.found == 'true'
@@ -144,6 +156,14 @@ jobs:
             --exclude='./*.zip' \
             --exclude='./__MACOSX' --exclude='./__MACOSX/*' \
             -cf - . | tar -C "$GITHUB_WORKSPACE" -xf -
+
+          # tar extracts over the tree and never deletes, so tracks already in
+          # music/ survive a code-only zip. Say so in the log, because a silent
+          # folder is the one thing that looks like a bug.
+          if [ "${MP3_COUNT:-0}" -eq 0 ]; then
+            KEPT=$(find "$GITHUB_WORKSPACE/music" -name '*.mp3' -type f 2>/dev/null | wc -l)
+            echo "No audio in this archive. music/ still holds $KEPT track(s)."
+          fi
 
           rm -f "$ZIP"
           git rev-parse --git-dir >/dev/null
