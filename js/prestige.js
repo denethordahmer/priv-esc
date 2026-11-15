@@ -10,7 +10,7 @@ function pendingExabytes() {
 }
 
 function canAscend() {
-  return state.totalData >= 1e12;
+  return state.totalData >= PRESTIGE_BASE;
 }
 
 /**

@@ -21,6 +21,8 @@ function serialise() {
     g: state.grid,
     ph: state.phase,
     ms: state.milestones,
+    ed: state.ended,
+    ec: state.endingCount,
     nl: state.narrative.slice(-200),
     sa: state.startedAt,
     tls: state.totalPlaySeconds,
@@ -65,6 +67,8 @@ function loadState(raw) {
   state.cloud = sanitisePrestigeTiers(d.c, PRESTIGE.cloud);
   state.grid = sanitisePrestigeTiers(d.g, PRESTIGE.grid);
   state.milestones = Array.isArray(d.ms) ? d.ms.filter((m) => typeof m === 'string') : [];
+  state.ended = d.ed === true;
+  state.endingCount = Math.max(0, Math.floor(num(d.ec, 0)));
   state.narrative = Array.isArray(d.nl) ? d.nl.slice(-200) : [];
   state.settings = Object.assign(base.settings, d.st && typeof d.st === 'object' ? d.st : {});
 

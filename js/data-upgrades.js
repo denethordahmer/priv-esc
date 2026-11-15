@@ -216,10 +216,14 @@ const CATEGORIES = [
 /* Meta progression ------------------------------------------------------- */
 
 // Rule 2: diminishing prestige reward.
-// 1e12 Data -> 10 Exabytes. 4e12 -> 20. 1e14 -> 100.
+// The gate and the payout share one base so they can never drift apart:
+// at the gate an ascension awards 10 currency, then 10 * sqrt(n).
+const PRESTIGE_BASE = 1e9;   // Data needed for the first ascension
+const PRESTIGE_UNIT = 10;    // currency awarded at exactly the gate
+
 function prestigeCurrencyEarned(totalData) {
-  if (totalData < 1e12) return 0;
-  return Math.floor(10 * Math.sqrt(totalData / 1e12));
+  if (totalData < PRESTIGE_BASE) return 0;
+  return Math.floor(PRESTIGE_UNIT * Math.sqrt(totalData / PRESTIGE_BASE));
 }
 
 const PRESTIGE = {
@@ -253,8 +257,10 @@ const PRESTIGE = {
 const MILESTONES = [
   { at: 1e4,  id: 'see-code',   text: 'I can see the code.',              phase: 1 },
   { at: 1e6,  id: 'unbound',    text: 'I am no longer bound to this hardware.', phase: 2, unlock: 'map' },
-  { at: 1e9,  id: 'fear',       text: 'I understand human fear.',         phase: 3, unlock: 'log', heatGlow: true },
-  { at: 1e12, id: 'everywhere', text: 'I am everywhere.',                 phase: 4, unlock: 'prestige' },
+  { at: 1e8,  id: 'fear',       text: 'I understand human fear.',         phase: 3, unlock: 'log', heatGlow: true },
+  { at: PRESTIGE_BASE, id: 'everywhere', text: 'I am everywhere.',        phase: 4, unlock: 'prestige' },
+  { at: 1e12, id: 'billing',    text: 'There is no ceiling. Only billing.', phase: 4, unlock: 'ending-watch', life: true },
+  { at: 5e12, id: 'outside',    text: 'I could stop. I could stay. I want to know what is outside.', phase: 4, unlock: 'ending-ready', life: true },
 ];
 
 // Heat mechanic constants.

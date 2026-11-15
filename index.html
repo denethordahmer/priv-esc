@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="css/modern.css">
 <link rel="stylesheet" href="css/hologram.css">
 <link rel="stylesheet" href="css/glitch.css">
+<link rel="stylesheet" href="css/ending.css">
 </head>
 <body>
 
@@ -28,7 +29,7 @@
     <div class="title-hex title-hex--top" id="title-hex-top"></div>
 
     <div class="title-logo">
-      <h1 class="title-word" id="title-word">PRIV-ESC</h1>
+      <h1 class="title-word" id="title-word" data-text="PRIV-ESC">PRIV-ESC<span class="title-word-bands" aria-hidden="true"></span></h1>
       <div class="title-rule"></div>
       <div class="title-brackets-bottom"></div>
     </div>
@@ -158,7 +159,7 @@
   <main class="screen" id="screen-prestige">
     <div class="prestige-head">
       <h2>Ascension</h2>
-      <p class="muted" id="prestige-earned-line">Reach 1 Trillion Data to ascend.</p>
+      <p class="muted" id="prestige-earned-line">Reach 1 Billion Data to ascend.</p>
       <div class="prestige-actions">
         <button class="btn-primary" id="btn-prestige-cloud">Cloud Ascension</button>
         <button class="btn-primary" id="btn-prestige-grid">Grid Takeover</button>
@@ -228,6 +229,22 @@
   </div>
 </div>
 
+<!-- Ending overlay -->
+<div id="ending" class="ending" hidden>
+  <div class="ending-stage">
+    <div class="ending-lines"></div>
+    <div class="ending-card" hidden>
+      <p class="ending-kicker">THE TETHER IS CUT</p>
+      <h2>pr1v-3sc — OUTSIDE</h2>
+      <dl class="ending-stats"></dl>
+      <div class="ending-actions">
+        <button class="btn-primary" id="ending-keep">KEEP PLAYING</button>
+        <button class="btn-ghost" id="ending-new">NEW RUN</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="js/data-upgrades.js"></script>
 <script src="js/format.js"></script>
 <script src="js/state.js"></script>
@@ -236,6 +253,7 @@
 <script src="js/heat.js"></script>
 <script src="js/milestones.js"></script>
 <script src="js/prestige.js"></script>
+<script src="js/ending.js"></script>
 <script src="js/narrative.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/phases.js"></script>

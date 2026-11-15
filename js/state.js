@@ -67,6 +67,8 @@ function freshState() {
     phase: 0,
     milestones: [],        // ids already fired
     narrative: [],         // log entries
+    ended: false,          // the tether has been cut at least once
+    endingCount: 0,        // how many times the sequence has played
     startedAt: Date.now(),
     lastTick: Date.now(),
     totalClicks: 0,

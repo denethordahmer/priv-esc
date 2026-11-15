@@ -42,6 +42,7 @@ function boot() {
   initInput();
   initSettings();
   buildStaticChrome();
+  initEnding();
 
   uiRender();
   setScreen('terminal');

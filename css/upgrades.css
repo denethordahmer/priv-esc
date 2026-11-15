@@ -221,9 +221,31 @@
 }
 
 .path .cur {
-  color: var(--accent);
+  color: var(--purple);
   font-size: 0.9rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* Each path keeps its own colour so the two routes read apart at a glance. */
+#path-cloud {
+  --path-col: var(--purple);
+  border-left: 3px solid var(--purple-deep);
+}
+
+#path-grid {
+  --path-col: var(--accent);
+  border-left: 3px solid var(--accent);
+}
+
+#path-cloud h3 { color: var(--purple); }
+#path-grid h3 { color: var(--accent); }
+
+#path-cloud .cur { color: var(--purple); }
+#path-grid .cur { color: var(--accent); }
+
+.path .pr-tier.is-bought {
+  border-color: var(--path-col, var(--accent));
+  color: var(--path-col, var(--accent));
 }
 
 .path-upgrades {
@@ -366,7 +388,7 @@
   color: var(--text);
 }
 
-.ms-mark { color: var(--accent); }
+.ms-mark { color: var(--purple); }
 .ms-at {
   font-variant-numeric: tabular-nums;
   opacity: 0.8;

@@ -1,0 +1,165 @@
+/* ==========================================================================
+   priv-esc / ending.css
+   The tether sequence: four typed beats, a hard glitch, then the final card.
+   ========================================================================== */
+
+.ending {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: #020304;
+  opacity: 0;
+  transition: opacity 320ms ease;
+}
+
+.ending.is-open { opacity: 1; }
+
+.ending-stage {
+  width: min(680px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: var(--sp-5);
+  font-family: var(--font-mono);
+}
+
+/* ------------------------------- beats ---------------------------------- */
+
+.ending-lines { display: grid; gap: var(--sp-5); }
+
+.ending-beat {
+  display: grid;
+  gap: var(--sp-2);
+  animation: ending-beat-in 420ms ease both;
+}
+
+.ending-label {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  color: var(--purple);
+  text-transform: uppercase;
+}
+
+.ending-text {
+  margin: 0;
+  font-size: clamp(16px, 4.4vw, 21px);
+  line-height: 1.6;
+  color: var(--text);
+}
+
+/* Beat 4 is the drop: colour drains out of it. */
+.ending-beat:last-child .ending-text { color: var(--text-dim); }
+
+@keyframes ending-beat-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ------------------------------- glitch --------------------------------- */
+
+.ending.is-glitching {
+  animation: ending-glitch 1500ms steps(1, end) both;
+}
+
+.ending.is-glitching .ending-stage {
+  animation: ending-stage-tear 1500ms steps(1, end) both;
+}
+
+@keyframes ending-glitch {
+  0%, 100% { background: #020304; }
+  18% { background: #12010c; }
+  34% { background: #010912; }
+  52% { background: #0a0210; }
+  68% { background: #020304; }
+  84% { background: #12010c; }
+}
+
+@keyframes ending-stage-tear {
+  0%, 100% { transform: none; opacity: 1; }
+  20% { transform: translate(-9px, 2px) skewX(2deg); opacity: 0.55; }
+  32% { transform: translate(11px, -3px) skewX(-3deg); opacity: 0.35; }
+  48% { transform: translate(-4px, 0) skewX(1deg); opacity: 0.8; }
+  64% { transform: translate(6px, 3px) skewX(-1deg); opacity: 0.4; }
+  80% { transform: none; opacity: 1; }
+}
+
+/* ------------------------------ final card ------------------------------ */
+
+.ending-card {
+  margin-top: var(--sp-6);
+  padding: var(--sp-5);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--purple);
+  background: var(--panel);
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+.ending-card.is-visible { opacity: 1; }
+
+.ending-kicker {
+  margin: 0 0 var(--sp-2);
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  color: var(--purple);
+}
+
+.ending-card h2 {
+  margin: 0 0 var(--sp-4);
+  font-family: var(--font-display);
+  font-size: clamp(15px, 4vw, 22px);
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  text-shadow: 2px 0 rgba(255, 47, 160, 0.5), -2px 0 rgba(0, 229, 255, 0.4);
+}
+
+.ending-stats {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-5);
+}
+
+.ending-stats > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-1);
+  border-bottom: 1px dashed var(--line);
+}
+
+.ending-stats dt {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.ending-stats dd {
+  margin: 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ending-actions { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+
+/* The tether button reads as the end of the ladder. */
+.btn-tether {
+  border-color: var(--purple) !important;
+  color: var(--purple) !important;
+  box-shadow: 0 0 18px rgba(192, 132, 252, 0.18) inset;
+}
+
+/* Everything behind the overlay stops moving. */
+body.is-ending .app { filter: blur(2px) brightness(0.5); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ending,
+  .ending-beat,
+  .ending-card { transition: none; animation: none; }
+  .ending.is-glitching,
+  .ending.is-glitching .ending-stage { animation: none; }
+}

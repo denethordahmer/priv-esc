@@ -11,7 +11,9 @@ let lastMilestoneCheck = 0;
 function checkMilestones() {
   MILESTONES.forEach((m) => {
     if (state.milestones.includes(m.id)) return;
-    if (state.totalData < m.at) return;
+    // Late milestones measure lifetime Data so an ascension cannot wipe them.
+    const progress = m.life ? state.lifetimeData : state.totalData;
+    if (progress < m.at) return;
 
     state.milestones.push(m.id);
     state.phase = Math.max(state.phase, m.phase);
@@ -22,6 +24,7 @@ function checkMilestones() {
 
     if (m.unlock === 'prestige') revealPrestige();
     if (m.unlock === 'log') revealLog();
+    if (m.unlock === 'ending-watch' || m.unlock === 'ending-ready') syncEndingControls();
     if (m.heatGlow) document.getElementById('heat-panel')?.classList.add('is-hot');
 
     applyPhase(state.phase);
@@ -39,5 +42,6 @@ function milestoneProgress() {
   if (!next) return 1;
   const reached = MILESTONES.filter((m) => state.milestones.includes(m.id));
   const prev = reached.length ? reached[reached.length - 1].at : 0;
-  return Math.min(1, Math.max(0, (state.totalData - prev) / (next.at - prev)));
+  const progress = next.life ? state.lifetimeData : state.totalData;
+  return Math.min(1, Math.max(0, (progress - prev) / (next.at - prev)));
 }

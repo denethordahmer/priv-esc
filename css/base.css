@@ -23,6 +23,8 @@
   /* Signal colours */
   --accent: #35ff8f;      /* primary green */
   --accent-2: #28b6ff;    /* secondary cyan */
+  --purple: #c084fc;      /* title-screen violet, used as the second voice */
+  --purple-deep: #a855f7;
   --danger: #ff4d6a;
   --ok: #46e3a0;
 
@@ -185,7 +187,7 @@ ol {
 .hud-phase {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--purple);
 }
 
 .hud-stats {
@@ -458,7 +460,7 @@ ol {
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.14em;
-  color: var(--text-dim);
+  color: var(--purple);
 }
 
 .side-list > div {

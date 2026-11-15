@@ -275,16 +275,20 @@ function upgradeRow(unit) {
 
 function renderPrestige() {
   const earned = pendingExabytes();
+  const armed = endingArmed();
 
-  document.getElementById('prestige-earned-line').textContent = canAscend()
-    ? `Ascending now awards ${earned} prestige currency.`
-    : `Reach 1 Trillion Data to ascend. ${fmt(state.totalData)} / 1.00T`;
+  document.getElementById('prestige-earned-line').textContent = armed
+    ? `Lifetime Data ${fmt(state.lifetimeData)} / ${fmt(ENDING_AT)} — the tether is within reach.`
+    : canAscend()
+      ? `Ascending now awards ${earned} prestige currency.`
+      : `Reach ${fmt(PRESTIGE_BASE)} Data to ascend. ${fmt(state.totalData)} / ${fmt(PRESTIGE_BASE)}`;
 
   document.getElementById('cur-cloud').textContent = `${fmt(state.exabytes)} EB`;
   document.getElementById('cur-grid').textContent = `${fmt(state.gridNodes)} GN`;
 
   document.getElementById('btn-prestige-cloud').disabled = !canAscend();
   document.getElementById('btn-prestige-grid').disabled = !canAscend();
+  syncEndingControls();
 
   renderPrestigePath('cloud', document.getElementById('list-cloud'));
   renderPrestigePath('grid', document.getElementById('list-grid'));
