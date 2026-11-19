@@ -225,6 +225,16 @@
         <span>Auto-save</span>
         <span class="setting-value" id="setting-autosave">every 15s</span>
       </div>
+      <div class="setting setting-stack">
+        <button class="setting-toggle" id="btn-music-panel" aria-expanded="false" aria-controls="music-panel">
+          <span>Music tracks</span>
+          <span class="setting-toggle-hint" id="music-panel-hint">Shuffle</span>
+        </button>
+        <div class="music-panel" id="music-panel" hidden>
+          <p class="muted small">Pick one track to repeat, or shuffle the lot.</p>
+          <ul class="music-list" id="music-list" role="listbox" aria-label="Track"></ul>
+        </div>
+      </div>
       <div class="setting">
         <span>Sound</span>
         <label class="toggle">

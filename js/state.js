@@ -81,6 +81,7 @@ function freshState() {
       autoSaveSeconds: 15,
       sound: false,
       musicVolume: 45,       // percent, 0-100
+      musicTrack: null,      // null = shuffle the whole playlist
     },
   };
 }

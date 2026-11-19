@@ -75,7 +75,7 @@ globalThis.__exports = {
   state, UNIT_REGISTRY, UNITS_BY_KEY, CATEGORIES, COST_GROWTH,
   MILESTONES, GATES, PRESTIGE, HEAT, PRESTIGE_BASE, PRESTIGE_UNIT,
   ENDING_AT, ESCAPE_AT, ESCAPE_MULT, ESCAPE_UNIT, CLICK_RATE_SHARE,
-  fmtCompact, musicVolume, DEFAULT_VOLUME,
+  fmtCompact, musicVolume, DEFAULT_VOLUME, shuffleIndexes,
   purchaseMultiplier, purchaseTiers, globalPurchaseMultiplier,
   totalLevelsBought, subEffect, escape, canEscape, pendingEscapes,
   escapeChargesEarned,
@@ -326,8 +326,22 @@ check('music volume is clamped to a sane range', () => {
   return `default ${c.DEFAULT_VOLUME}%`;
 });
 
-check('the music manifest matches the folder', () => {
-  // The game reads music/manifest.json rather than probing for files, so a
+check('shuffle keeps every track and avoids repeating the last one', () => {
+  // A random order is only acceptable if it still plays every track once, and
+  // never opens a round with the track that just finished.
+  for (let run = 0; run < 200; run += 1) {
+    const order = c.shuffleIndexes(4, 2);
+    assert(order.length === 4, 'shuffle changed the number of tracks');
+    assert(new Set(order).size === 4, 'shuffle dropped or duplicated a track');
+    assert(order[0] !== 2, 'shuffle started with the track that just played');
+  }
+
+  const single = c.shuffleIndexes(1, 0);
+  assert(single.length === 1 && single[0] === 0, 'one track should stay put');
+  return '4 tracks, 200 rounds';
+});
+
+check('the music manifest matches the folder', () => {  // The game reads music/manifest.json rather than probing for files, so a
   // stale manifest means a track that exists never plays. This keeps the two
   // in step: run `node tools/music-manifest.js` after adding tracks.
   const musicDir = path.join(ROOT, 'music');
@@ -339,19 +353,25 @@ check('the music manifest matches the folder', () => {
 
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const files = fs.readdirSync(musicDir);
+  const mp3s = files.filter((f) => /\.mp3$/i.test(f));
 
-  assert(manifest.title === files.includes('title.mp3'),
-    'manifest disagrees with the folder about title.mp3');
-
-  const expected = [];
-  for (let i = 1; i <= 12; i += 1) {
-    const name = `track${i}.mp3`;
-    if (files.includes(name)) expected.push(name);
-    else break;
+  // Every mp3 must be named "NN Title.mp3", because the number sets the order
+  // and the title is what the game displays.
+  for (const file of mp3s) {
+    assert(/^\d{2}\s+.+\.mp3$/i.test(file), `wrong name, expected "NN Title.mp3": ${file}`);
   }
 
-  assert(JSON.stringify(manifest.tracks) === JSON.stringify(expected),
-    `manifest lists ${manifest.tracks.join(',')} but the folder has ${expected.join(',')}`);
+  const listed = [manifest.title, ...manifest.tracks].filter(Boolean);
+  assert(listed.length === mp3s.length,
+    `manifest lists ${listed.length} file(s) but the folder has ${mp3s.length}`);
+
+  for (const entry of listed) {
+    assert(entry && entry.file && entry.name, 'manifest entry is missing file or name');
+    assert(files.includes(entry.file), `manifest lists a missing file: ${entry.file}`);
+  }
+
+  const title = mp3s.find((f) => f.startsWith('00 '));
+  assert(!!manifest.title === !!title, 'manifest disagrees with the folder about the title theme');
 
   return `${manifest.tracks.length} tracks + title`;
 });

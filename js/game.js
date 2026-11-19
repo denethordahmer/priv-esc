@@ -43,10 +43,14 @@ function boot() {
   initSettings();
   buildStaticChrome();
   initEnding();
-  initAudio();
 
   uiRender();
   setScreen('terminal');
+
+  // boot() has just replaced the in-memory state with the save, so the
+  // settings controls are refreshed against it.
+  if (typeof window.refreshSoundToggle === 'function') window.refreshSoundToggle();
+  if (typeof window.refreshMusicPanel === 'function') window.refreshMusicPanel();
 
   if (offline) {
     showOfflineSummary(offline);
@@ -251,6 +255,9 @@ window.addEventListener('DOMContentLoaded', () => {
   runBootSequence(() => {
     booted = true;
     // The title screen comes first; the game starts when START is pressed.
+    // Audio starts here too, so title.mp3 can play on the title screen.
+    adoptSavedAudioSettings();
+    initAudio();
     showTitleScreen();
     initTitleControls(() => boot());
   });

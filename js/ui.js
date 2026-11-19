@@ -592,6 +592,12 @@ function initSettings() {
     });
   }
 
+  // The title screen can be dismissed before boot() loads the save, so the
+  // toggle is refreshed again after the game starts.
+  window.refreshSoundToggle = () => {
+    if (sound) sound.checked = state.settings.sound === true;
+  };
+
   const volume = document.getElementById('music-volume');
   const volumeValue = document.getElementById('music-volume-value');
   if (volume) {
@@ -607,11 +613,77 @@ function initSettings() {
     volume.addEventListener('change', () => saveNow(false));
   }
 
+  const panelButton = document.getElementById('btn-music-panel');
+  const panel = document.getElementById('music-panel');
+  const list = document.getElementById('music-list');
+  const hint = document.getElementById('music-panel-hint');
+
+  const paintTracks = () => {
+    if (!list) return;
+    const info = typeof musicState === 'function' ? musicState() : { tracks: [], selected: null };
+    list.innerHTML = '';
+
+    const row = (name, length, value) => {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.className = 'music-item';
+      btn.type = 'button';
+      btn.dataset.track = value || '';
+      btn.setAttribute('role', 'option');
+      const on = (info.selected || '') === (value || '');
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      btn.classList.toggle('is-active', on);
+
+      const label = document.createElement('span');
+      label.className = 'music-item-name';
+      label.textContent = name;
+      btn.appendChild(label);
+
+      if (length) {
+        const len = document.createElement('span');
+        len.className = 'music-item-length';
+        len.textContent = length;
+        btn.appendChild(len);
+      }
+
+      btn.addEventListener('click', () => {
+        setMusicTrack(value || null);
+        if (hint) hint.textContent = value || 'Shuffle';
+        paintTracks();
+        saveNow(false);
+      });
+
+      li.appendChild(btn);
+      list.appendChild(li);
+    };
+
+    row('Shuffle all', '', null);
+    info.tracks.forEach((t) => row(t.name, t.length, t.name));
+
+    if (hint) hint.textContent = info.selected || 'Shuffle';
+  };
+
+  if (panelButton && panel) {
+    panelButton.addEventListener('click', () => {
+      const open = panelButton.getAttribute('aria-expanded') === 'true';
+      panelButton.setAttribute('aria-expanded', open ? 'false' : 'true');
+      panel.hidden = open;
+      if (!open) paintTracks();
+    });
+
+    // discoverTracks() is async, so the list is often empty at this point.
+    // audio.js calls this again when the manifest has been read.
+    window.refreshMusicPanel = paintTracks;
+
+    const info = typeof musicState === 'function' ? musicState() : { selected: null };
+    if (hint) hint.textContent = info.selected || 'Shuffle';
+    paintTracks();
+  }
+
   document.getElementById('btn-buy-best')?.addEventListener('click', () => {
     const unit = bestValueUnit();
     if (unit && buyUnit(unit)) uiRender();
   });
-
   // Bulk-buy selector: one active choice at a time.
   const multWrap = document.getElementById('buy-mult');
   if (multWrap) {

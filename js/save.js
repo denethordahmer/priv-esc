@@ -85,6 +85,11 @@ function loadState(raw) {
     ? Math.max(0, Math.min(100, Math.round(vol)))
     : DEFAULT_VOLUME;
 
+  // A chosen track is a name from the playlist; anything else means shuffle.
+  if (typeof state.settings.musicTrack !== 'string' || !state.settings.musicTrack) {
+    state.settings.musicTrack = null;
+  }
+
   state.maxHeat = heatCapacity();
   return { ok: true };
 }
