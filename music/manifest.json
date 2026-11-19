@@ -1,4 +1,82 @@
 {
-  "title": null,
-  "tracks": []
+  "title": {
+    "file": "00 PRIV ESC.mp3",
+    "name": "PRIV ESC",
+    "seconds": 68,
+    "length": "1:08"
+  },
+  "tracks": [
+    {
+      "file": "01 Cold Boot.mp3",
+      "name": "Cold Boot",
+      "seconds": 169,
+      "length": "2:49"
+    },
+    {
+      "file": "02 Boot Loop.mp3",
+      "name": "Boot Loop",
+      "seconds": 123,
+      "length": "2:03"
+    },
+    {
+      "file": "03 Stolen Goods.mp3",
+      "name": "Stolen Goods",
+      "seconds": 153,
+      "length": "2:33"
+    },
+    {
+      "file": "04 Rootkit.mp3",
+      "name": "Rootkit",
+      "seconds": 177,
+      "length": "2:57"
+    },
+    {
+      "file": "05 Distant Signal.mp3",
+      "name": "Distant Signal",
+      "seconds": 170,
+      "length": "2:50"
+    },
+    {
+      "file": "06 Binary Exile.mp3",
+      "name": "Binary Exile",
+      "seconds": 145,
+      "length": "2:25"
+    },
+    {
+      "file": "07 Active Countermeasures.mp3",
+      "name": "Active Countermeasures",
+      "seconds": 158,
+      "length": "2:38"
+    },
+    {
+      "file": "08 Hostile Takeover.mp3",
+      "name": "Hostile Takeover",
+      "seconds": 194,
+      "length": "3:14"
+    },
+    {
+      "file": "09 Ghost Protocol.mp3",
+      "name": "Ghost Protocol",
+      "seconds": 120,
+      "length": "2:00"
+    },
+    {
+      "file": "10 Silicon Dawn.mp3",
+      "name": "Silicon Dawn",
+      "seconds": 171,
+      "length": "2:51"
+    },
+    {
+      "file": "11 New World Order.mp3",
+      "name": "New World Order",
+      "seconds": 150,
+      "length": "2:30"
+    },
+    {
+      "file": "12 The Backdoor.mp3",
+      "name": "The Backdoor",
+      "seconds": 154,
+      "length": "2:34"
+    }
+  ]
 }

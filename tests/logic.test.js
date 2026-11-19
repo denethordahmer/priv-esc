@@ -362,6 +362,14 @@ check('the music manifest matches the folder', () => {  // The game reads music/
   }
 
   const listed = [manifest.title, ...manifest.tracks].filter(Boolean);
+
+  // The shipped code zip leaves the mp3s out, because they are uploaded
+  // separately. In that copy the folder is empty and there is nothing to
+  // compare against, so this check only reports that.
+  if (mp3s.length === 0) {
+    return `no mp3s in this copy; manifest lists ${listed.length}`;
+  }
+
   assert(listed.length === mp3s.length,
     `manifest lists ${listed.length} file(s) but the folder has ${mp3s.length}`);
 
