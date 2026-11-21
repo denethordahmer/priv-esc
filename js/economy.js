@@ -147,24 +147,27 @@ function nextTargetUnit() {
   return target || cheapestUnit();
 }
 
-/* --------------------------- auto-compiler ------------------------------ */
+/* --------------------------- build pipeline ----------------------------- */
 
-let compilerTimer = 0;
+let pipelineTimer = 0;
 
 /**
- * Cloud Auto-Compiler buys the cheapest affordable upgrade on a timer.
+ * Build Pipeline buys the best-value section on a timer.
  * Returns true if it bought something this tick.
+ *
+ * The interval shortens with levels, so the section is worth buying: 40
+ * levels takes it from one purchase per 5 seconds down to one per 0.5 s.
  */
 function tickAutoCompiler(dt) {
-  const tier = state.cloud.compiler || 0;
-  if (tier === 0) return false;
+  const level = ownedOf('pipeline');
+  if (level === 0) return false;
 
-  const every = PRESTIGE.cloud.upgrades[3].tiers[tier - 1];  // 5 / 2 / 0.5 s
-  compilerTimer += dt;
-  if (compilerTimer < every) return false;
-  compilerTimer = 0;
+  const every = Math.max(0.5, 5 - level * 0.1);
+  pipelineTimer += dt;
+  if (pipelineTimer < every) return false;
+  pipelineTimer = 0;
 
-  const unit = cheapestUnit();
+  const unit = bestValueUnit();
   if (!unit) return false;
   return buyUnit(unit);
 }

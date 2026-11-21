@@ -23,13 +23,9 @@ function heatPerAutoClick() {
   return h;
 }
 
-/** Cooling strength per second, improved by Cooling upgrades. */
+/** Cooling strength per second, improved by Thermal Loop levels. */
 function coolingPerSecond() {
-  const coolSub = CATEGORIES[0].subs[3];
-  let bonus = 0;
-  coolSub.items.forEach((item, tier) => {
-    bonus += ownedOf(`cool:${tier}`) * 0.12;
-  });
+  const bonus = ownedOf('thermal') * 0.12;
   return HEAT.coolPerSecond * (1 + bonus);
 }
 

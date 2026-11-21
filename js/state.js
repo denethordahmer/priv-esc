@@ -3,35 +3,38 @@
    Everything else reads and writes this object. No DOM code lives here.
    ========================================================================= */
 
-const SAVE_VERSION = 3;
+const SAVE_VERSION = 4;
 
-/** Build the unit registry from the catalogue shipped in data-upgrades.js. */
+/*
+ * The unit registry: one entry per section.
+ *
+ * Each section has exactly one unit, so the registry is the sections plus the
+ * bookkeeping the shop needs (key, kind, cap). Keeping the registry shape
+ * means the shop, the buy/sell code and the auto-buy helper keep working on
+ * `unit.key` without knowing there used to be tiers.
+ */
 function buildUnitRegistry() {
-  const units = [];
-  CATEGORIES.forEach((cat) => {
-    cat.subs.forEach((sub) => {
-      sub.items.forEach((item, tier) => {
-        units.push({
-          key: `${sub.id}:${tier}`,
-          cat: cat.id,
-          sub: sub.id,
-          subName: sub.name,
-          kind: sub.kind,
-          cap: sub.cap ?? null,
-          tier,
-          name: item.name,
-          desc: item.desc,
-          base: item.base,
-          eff: item.eff,
-        });
-      });
-    });
-  });
-  return units;
+  return SECTIONS.map((sub) => ({
+    key: sub.id,
+    id: sub.id,
+    cat: sub.id,
+    sub: sub.id,
+    subName: sub.name,
+    kind: sub.role,
+    cap: null,
+    name: sub.name,
+    desc: sub.desc,
+    base: sub.base,
+    eff: sub.perLevel,
+  }));
 }
 
 const UNIT_REGISTRY = buildUnitRegistry();
 const UNITS_BY_KEY = new Map(UNIT_REGISTRY.map((u) => [u.key, u]));
+
+function sectionById(id) {
+  return UNITS_BY_KEY.get(id) || null;
+}
 
 function freshUpgrades() {
   const owned = {};
@@ -46,7 +49,7 @@ function freshState() {
     // currencies
     data: 0,
     totalData: 0,          // all Data ever produced, drives milestones
-    lifetimeData: 0,       // across ascensions, for flavour only
+    lifetimeData: 0,       // across ascensions, for flavour and the escape ladder
     exabytes: 0,
     gridNodes: 0,
     escapes: 0,            // second-layer currency, kept across every reset
@@ -54,6 +57,7 @@ function freshState() {
     // progress
     upgrades: freshUpgrades(),
     lifetimeLevels: 0,     // total levels bought, survives every reset
+    gatesPaid: [],         // ids of gates whose one-time reward was taken
     heat: 0,
     maxHeat: HEAT.baseMax,
     crashed: false,
@@ -98,20 +102,15 @@ function ownedOf(key) {
 }
 
 /**
- * Total levels bought across every item in a subcategory.
- * Caps work on this number, not per item. A per-item cap let a subcategory
- * with eight capped items compound eight times over (the simulator saw
- * 39,000x before this was fixed).
+ * Level count for a section.
+ * Kept as a named helper because the old build measured a subcategory's
+ * combined tiers; callers still ask for "how far is this section".
  */
 function subOwnedTotal(subId) {
-  let total = 0;
-  UNIT_REGISTRY.forEach((u) => {
-    if (u.sub === subId) total += ownedOf(u.key);
-  });
-  return total;
+  return ownedOf(subId);
 }
 
-/** Total levels bought across every subcategory, this run. */
+/** Total levels bought across every section, this run. */
 function totalLevelsBought() {
   let total = 0;
   UNIT_REGISTRY.forEach((u) => { total += ownedOf(u.key); });
@@ -120,10 +119,7 @@ function totalLevelsBought() {
 
 /**
  * Levels bought across every run.
- *
- * The global purchase bonus is built on this rather than the current run's
- * count, so a prestige reset does not hand back the multiplier it just took
- * away. Without it, escaping dropped the bonus to 1x and the ladder stalled.
+ * Survives resets so the ledger on screen keeps counting up.
  */
 function lifetimeLevelsBought() {
   return Math.max(state.lifetimeLevels || 0, totalLevelsBought());
@@ -133,7 +129,7 @@ function unitCost(unit) {
   const owned = ownedOf(unit.key);
   let cost = unit.base * Math.pow(COST_GROWTH, owned);
 
-  // Compression upgrades reduce every price.
+  // Compression lowers every price.
   cost *= costMultiplier();
 
   // Grid Takeover: Resource Optimization tiers 0.95 / 0.90 / 0.80.
@@ -141,70 +137,55 @@ function unitCost(unit) {
   if (optTier > 0) cost *= PRESTIGE.grid.upgrades[1].tiers[optTier - 1];
 
   // Repeatable Grid Fabrication Line: 2% cheaper per level, floored so it
-  // can never reach zero.
-  const fabrication = state.grid.fabrication || 0;
+  // can never reach zero. Clamped at the cap for saves that went past it.
+  const fabrication = Math.min(state.grid.fabrication || 0, FABRICATION_MAX_LEVELS);
   if (fabrication > 0) cost *= Math.max(0.25, 1 - fabrication * 0.02);
 
   return cost;
 }
 
-function unitMaxed(unit) {
-  return unit.cap !== null && subOwnedTotal(unit.sub) >= unit.cap;
-}
-
-/** Total cost-reduction factor from Compression upgrades. */
-function costMultiplier() {
-  let reduction = 0;
-  CATEGORIES.forEach((cat) => {
-    cat.subs.forEach((sub) => {
-      if (sub.kind !== 'cost') return;
-      const levels = subOwnedTotal(sub.id);
-      if (levels === 0) return;
-      reduction += sub.items[0].eff * Math.sqrt(levels);
-    });
-  });
-  return Math.max(1 - reduction, 0.25);   // never more than 75% off
+function unitMaxed() {
+  return false;
 }
 
 /**
- * Sum of a subcategory's production effect, accounting for owned counts.
+ * Total cost-reduction factor from Compression.
  *
- * The purchase-count bonus is applied once, at the subcategory level, using
- * the subcategory's total level count. Applying it per item as well doubled
- * every doubling, so ten levels paid 4x instead of 2x and the curve blew past
- * the top gate in days.
+ * Reduction is linear in level and floored at 75% off, so there is a real end
+ * point: the section stops being worth buying rather than compounding free.
  */
-function subEffect(sub) {
-  let total = 0;
-  sub.items.forEach((item, tier) => {
-    total += ownedOf(`${sub.id}:${tier}`) * item.eff;
-  });
-  return total * purchaseMultiplier(subOwnedTotal(sub.id));
+function costMultiplier() {
+  const compress = ownedOf('compress') * 0.01;
+  return Math.max(1 - compress, 0.25);
 }
 
-/** Global multiplier from all `mult` upgrades, plus Grid Overclocked Grid. */
+/** Output of one section, before the global multiplier. */
+function sectionOutput(sub) {
+  const level = ownedOf(sub.id);
+  if (level === 0) return 0;
+  return level * sub.eff * milestoneMultiplier(level);
+}
+
+/** A section's own milestone level count, for display. */
+function sectionMilestones(sub) {
+  return milestoneTiers(ownedOf(sub.id));
+}
+
+/** The next milestone level for a section, or null when all are passed. */
+function nextSectionMilestone(sub) {
+  const level = ownedOf(sub.id);
+  return MILESTONE_LEVELS.find((step) => level < step) || null;
+}
+
+/** Global multiplier from Exploit Chain and the prestige terms. */
 function globalMultiplier() {
   let mult = 1;
 
-  // Each multiplier subcategory contributes 1 + eff0 * sqrt(levels) * 2^tiers.
-  //
-  // Why sqrt: multiplying levels together compounded into the tens of
-  // thousands and collapsed the game into minutes. A flat linear term froze
-  // income at the cap. Square root gives strong early returns and diminishing
-  // later ones, so the shop can be bought forever.
-  //
-  // The purchase-count term is what lifts the ceiling above a trillion: it is
-  // a whole ×2 per threshold, and the thresholds double, so the bonus grows
-  // with the square of the level count. That compounds with the sqrt term
-  // rather than replacing it, which is why nothing here needs a hard cap.
-  CATEGORIES.forEach((cat) => {
-    cat.subs.forEach((sub) => {
-      if (sub.kind !== 'mult') return;
-      const levels = subOwnedTotal(sub.id);
-      if (levels === 0) return;
-      mult *= 1 + sub.items[0].eff * Math.sqrt(levels) * purchaseMultiplier(levels);
-    });
-  });
+  // Exploit Chain: linear in levels, doubled by its own milestones.
+  const exploit = sectionById('exploit');
+  if (ownedOf('exploit') > 0) {
+    mult *= 1 + sectionOutput(exploit);
+  }
 
   const overclockTier = state.grid.overclock || 0;
   if (overclockTier > 0) {
@@ -212,43 +193,52 @@ function globalMultiplier() {
   }
 
   // Repeatable prestige upgrades: Cloud Bandwidth Reserve adds a flat
-  // percentage per level, so prestige currency always has somewhere to go.
-  const bandwidth = state.cloud.bandwidth || 0;
+  // percentage per level, capped so it stays a bonus rather than an engine.
+  // Clamped here as well as in the shop, because an old save can carry more
+  // levels than the cap allows.
+  const bandwidth = Math.min(state.cloud.bandwidth || 0, BANDWIDTH_MAX_LEVELS);
   if (bandwidth > 0) mult *= 1 + bandwidth * 0.10;
 
-  // Cloud Ascension gives a flat permanent bonus per ascension.
-  mult *= 1 + state.ascensions * 0.15;
+  // Cloud Ascension gives a flat bonus per ascension, also capped. Unbounded,
+  // it produced thousands of ascensions a run and rebuilt the runaway.
+  const ascensions = Math.min(state.ascensions || 0, ASCENSION_BONUS_RUNS);
+  mult *= 1 + ascensions * ASCENSION_BONUS_PER_RUN;
 
-  // Global purchase bonus: doubles at widening thresholds of lifetime levels
-  // bought. This is what keeps a long game speeding up after the
-  // per-subcategory curves have flattened out, and it survives resets.
-  mult *= globalPurchaseMultiplier(lifetimeLevelsBought());
+  // Unspent prestige currency: +0.1% Data per unit held, capped at +100%.
+  // This rewards banking instead of spending without becoming a second engine.
+  const banked = Math.min(
+    (state.exabytes || 0) + (state.gridNodes || 0),
+    UNSPENT_BONUS_CAP_UNITS
+  );
+  if (banked > 0) mult *= 1 + banked * UNSPENT_BONUS_PER_UNIT;
 
-  // Lifetime Data bonus. Buying levels cannot carry thirty orders of
-  // magnitude on its own: each level costs 1.15x more, so a decade of income
-  // only buys about eighteen more levels. Idle games break through that by
-  // making output scale with what has already been earned, and that is what
-  // this term does. The exponent sits below 1 so each gate takes longer than
-  // the last, which is the pacing the ladder is built around.
+  // One-time gate rewards: x5 per distinct gate crossed, paid once each.
+  // Counted by distinct id so a duplicate in a hand-edited save cannot stack.
+  const gates = new Set(state.gatesPaid || []).size;
+  if (gates > 0) mult *= Math.pow(GATE_REWARD, gates);
+
+  // Escape Charges: each charge doubles all Data. The charge count is capped
+  // by the escape ladder itself, which pays eleven charges across the whole
+  // game, so this tops out at x2048.
+  const escapes = state.escapes || 0;
+  if (escapes > 0) mult *= Math.pow(ESCAPE_MULT, escapes);
+
+  // Lifetime Data multiplier: the one term that scales with what has already
+  // been earned. Without it the linear shop stalls near 1e12 and the top of
+  // the ladder is unreachable; too high and the runaway returns. The exponent
+  // is measured and tested — see the note in data-upgrades.js.
   const lifetime = state.lifetimeData || 0;
   if (lifetime > DATA_MULT_FLOOR) {
     mult *= Math.pow(lifetime / DATA_MULT_FLOOR, DATA_MULT_EXP);
   }
 
-  // Escape Charges: every charge doubles all Data, forever.
-  const escapes = state.escapes || 0;
-  if (escapes > 0) mult *= Math.pow(ESCAPE_MULT, escapes);
-
   return mult;
 }
 
-/** Heat capacity from Cooling upgrades and Thermal Dynamics. */
+/** Heat capacity from Thermal Loop and Thermal Dynamics. */
 function heatCapacity() {
   let cap = HEAT.baseMax;
-  const cool = CATEGORIES[0].subs[3];
-  cool.items.forEach((item, tier) => {
-    cap += ownedOf(`cool:${tier}`) * item.eff;
-  });
+  cap += sectionOutput(sectionById('thermal'));
 
   const thermalTier = state.grid.thermal || 0;
   if (thermalTier === 3) return Infinity;
@@ -259,32 +249,19 @@ function heatCapacity() {
 }
 
 function clickPower() {
-  const inputSub = CATEGORIES[0].subs[0];
-  return 1 + subEffect(inputSub);
+  return 1 + sectionOutput(sectionById('keystroke'));
 }
 
 function autoClicksPerSecond() {
-  const scripts = CATEGORIES[1].subs[0];
-  let rate = subEffect(scripts);
-
-  // Cloud Quantum Threading boosts auto-click speed.
-  const threadTier = state.cloud.threading || 0;
-  if (threadTier > 0) {
-    rate *= 1 + PRESTIGE.cloud.upgrades[0].tiers[threadTier - 1] / 100;
-  }
-  return rate;
+  // Build Pipeline buys sections on a timer; it does not click. Auto-click
+  // speed comes from Sleep Cycle's automation tiers instead.
+  return 0;
 }
 
 function idlePerSecond() {
-  const subs = ['mem', 'network', 'botnet', 'facility', 'subag'];
-  let total = 0;
-  CATEGORIES.forEach((cat) => {
-    cat.subs.forEach((sub) => {
-      if (!subs.includes(sub.id)) return;
-      total += subEffect(sub);
-    });
-  });
-  return total;
+  // Daemon Threads is the passive line. Sleep Cycle multiplies what the tab
+  // earns while closed, not the live rate, so it stays out of this sum.
+  return sectionOutput(sectionById('daemon'));
 }
 
 function dataPerSecondPerClick() {
@@ -292,22 +269,18 @@ function dataPerSecondPerClick() {
 }
 
 function dataPerSecond() {
-  return (autoClicksPerSecond() + idlePerSecond()) * globalMultiplier();
+  return idlePerSecond() * globalMultiplier();
 }
 
-/** Current Data gain for one manual click. */
 /**
  * Data from one manual click.
  *
  * A click is worth its click power, plus a share of the passive rate once the
- * player owns a Click Script. Without that second term the button becomes
- * decoration once idle income takes over, which is most of the game. The
- * share is small (a tenth of one second of income) so clicking helps without
- * replacing the shop, and it stays locked until automation is unlocked so the
- * early game still rewards buying keyboards.
+ * player owns Build Pipeline. Without that second term the button becomes
+ * decoration once passive income takes over, which is most of the game.
  */
 function clickYield() {
   const manual = clickPower() * globalMultiplier();
-  if (subOwnedTotal(CLICK_SHARE_SUB) === 0) return manual;
+  if (ownedOf('pipeline') === 0) return manual;
   return manual + dataPerSecond() * CLICK_RATE_SHARE;
 }

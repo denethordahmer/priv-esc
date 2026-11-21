@@ -238,9 +238,9 @@ function simulateStep(dt) {
 
   applyPassive(dt);
 
-  // Auto clicks generate a trickle of heat.
-  const auto = autoClicksPerSecond() * dt;
-  tickHeat(dt, auto);
+  // Auto clicks generate a trickle of heat. There is no auto-click section in
+  // the eight-section shop, so this stays at zero and heat is tapped-driven.
+  tickHeat(dt, autoClicksPerSecond() * dt);
 
   tickAutoCompiler(dt);
 

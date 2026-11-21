@@ -225,81 +225,88 @@ function renderCatTabs() {
   const wrap = document.getElementById('cat-tabs');
   if (!wrap) return;
 
+  // Every section now lives on one screen. The two tabs that remain are a
+  // split between the rig and the code, which is how the shop reads.
   wrap.innerHTML = '';
-  CATEGORIES.forEach((cat) => {
+  [['hardware', '🔥', 'Rig'], ['software', '💻', 'Code']].forEach(([id, icon, label]) => {
     const btn = document.createElement('button');
-    btn.className = `cat-tab ${cat.id === activeCat ? 'is-active' : ''}`;
-    btn.innerHTML = `<span class="cat-icon">${cat.icon}</span><span>${cat.name}</span>`;
+    btn.className = `cat-tab ${id === activeCat ? 'is-active' : ''}`;
+    btn.innerHTML = `<span class="cat-icon">${icon}</span><span>${label}</span>`;
     btn.addEventListener('click', () => {
-      activeCat = cat.id;
+      activeCat = id;
       renderUpgrades();
     });
     wrap.appendChild(btn);
   });
 }
 
+/* Which tab each section sits on, so the split stays even. */
+const SECTION_TAB = {
+  keystroke: 'hardware',
+  daemon: 'hardware',
+  thermal: 'hardware',
+  pipeline: 'hardware',
+  exploit: 'software',
+  compress: 'software',
+  sleep: 'software',
+  exodus: 'software',
+};
+
 function renderSubList() {
   const wrap = document.getElementById('sub-list');
   if (!wrap) return;
 
-  const cat = CATEGORIES.find((c) => c.id === activeCat);
-  if (!cat) return;
-
   const buyableOnly = state.settings.buyableOnly;
   wrap.innerHTML = '';
 
-  cat.subs.forEach((sub) => {
-    const rows = sub.items
-      .map((item, tier) => ({ item, tier, unit: UNITS_BY_KEY.get(`${sub.id}:${tier}`) }))
-      .filter(({ unit }) => !buyableOnly || (state.data >= unitCost(unit) && !unitMaxed(unit)));
-
-    if (rows.length === 0) return;
-
-    const block = document.createElement('section');
-    block.className = 'sub-block';
-
-    const head = document.createElement('header');
-    head.className = 'sub-head';
-    head.innerHTML = `<h3>${sub.name}</h3><span class="sub-focus">${sub.focus}</span>`;
-    block.appendChild(head);
-
-    rows.forEach(({ item, tier, unit }) => {
-      block.appendChild(upgradeRow(unit));
-    });
-
-    wrap.appendChild(block);
+  UNIT_REGISTRY.forEach((unit) => {
+    if (SECTION_TAB[unit.key] !== activeCat) return;
+    if (buyableOnly && state.data < unitCost(unit)) return;
+    wrap.appendChild(upgradeRow(unit));
   });
 }
 
+/** What one level of a section is worth, in the unit that section produces. */
+function sectionEffectText(unit) {
+  const eff = unit.eff;
+  switch (unit.kind) {
+    case 'mult': return `+${(eff * 100).toFixed(0)}% all output`;
+    case 'cost': return `−${(eff * 100).toFixed(0)}% prices`;
+    case 'heat': return `+${fmt(eff)} heat cap`;
+    case 'click': return `+${fmt(eff)} per tap`;
+    case 'offline': return `+${(eff * 100).toFixed(0)}% offline`;
+    case 'auto': return `−${(eff * 5).toFixed(1)}s per buy`;
+    case 'prestige': return `+${(eff * 100).toFixed(0)}% ascension`;
+    default: return `+${fmt(eff)} /s`;
+  }
+}
+
 function upgradeRow(unit) {
-  const owned = ownedOf(unit.key);
-  const maxed = unitMaxed(unit);
+  const level = ownedOf(unit.key);
   const cost = unitCost(unit);
-  const affordable = state.data >= cost && !maxed;
+  const affordable = state.data >= cost;
 
   const row = document.createElement('button');
-  row.className = `up-row ${affordable ? 'is-affordable' : ''} ${maxed ? 'is-maxed' : ''} ${owned > 0 ? 'is-owned' : ''}`;
+  row.className = `up-row ${affordable ? 'is-affordable' : ''} ${level > 0 ? 'is-owned' : ''}`;
+  row.dataset.unit = unit.key;
 
-  const effectNow = unit.kind === 'mult'
-    ? `+${(unit.eff * 100).toFixed(1)}% global`
-    : unit.kind === 'cost'
-      ? `−${(unit.eff * 100).toFixed(1)}% costs`
-      : unit.kind === 'heat'
-        ? `+${fmt(unit.eff)} heat cap`
-        : unit.kind === 'click'
-          ? `+${fmt(unit.eff)} per click`
-          : unit.kind === 'auto'
-            ? `+${fmt(unit.eff)} clicks/s`
-            : `+${fmt(unit.eff)} /s`;
+  // Milestone progress is the section's own ladder: 25, 50, 100, 200, 400,
+  // 800. Showing the next one turns "keep buying" into a visible goal.
+  const nextAt = nextSectionMilestone(unit);
+  const gates = sectionMilestones(unit);
+  const milestone = nextAt
+    ? `<span class="up-milestone">NEXT ×2 at Lv ${nextAt}</span>`
+    : `<span class="up-milestone is-done">ALL MILESTONES ×${Math.pow(2, gates)}</span>`;
 
   row.innerHTML = `
     <span class="up-name">${unit.name}</span>
     <span class="up-desc">${unit.desc}</span>
     <span class="up-meta">
-      <span class="up-owned">${owned}${unit.cap !== null ? `/${unit.cap}` : ''}</span>
-      <span class="up-effect">${effectNow}</span>
-      <span class="up-cost">${maxed ? 'MAX' : fmt(cost)}</span>
-    </span>`;
+      <span class="up-owned">Lv ${level}</span>
+      <span class="up-effect">${sectionEffectText(unit)}</span>
+      <span class="up-cost">${fmt(cost)}</span>
+    </span>
+    ${milestone}`;
 
   row.addEventListener('click', () => {
     const mult = buyMultiplier();
@@ -311,7 +318,7 @@ function upgradeRow(unit) {
   });
 
   // Selling is a separate control so a tap on the row still buys.
-  if (owned > 0) {
+  if (level > 0) {
     const sell = document.createElement('button');
     sell.className = 'up-sell';
     sell.type = 'button';
@@ -378,15 +385,17 @@ function renderPrestigePath(pathId, wrap) {
 
     if (up.repeat) {
       // Repeatable upgrades show a running total instead of three fixed tiers.
+      // The level cap is printed so a maxed line reads as finished, not broken.
       const total = owned * up.step;
       const shown = up.id === 'fabrication'
         ? `−${Math.round(Math.min(0.75, total) * 100)}% costs`
         : `+${Math.round(total * 100)}% Data`;
+      const levelLabel = up.maxLevels ? `Lv ${owned}/${up.maxLevels}` : `Lv ${owned}`;
       row.innerHTML = `
         <span class="pr-name">${up.name}</span>
         <span class="pr-desc">${up.desc}</span>
-        <span class="pr-tiers"><span class="pr-tier is-bought">Lv ${owned}</span><span class="pr-tier">${shown}</span></span>
-        <span class="pr-cost">${fmt(cost)} ${path.currency === 'Exabytes' ? 'EB' : 'GN'}</span>`;
+        <span class="pr-tiers"><span class="pr-tier is-bought">${levelLabel}</span><span class="pr-tier">${shown}</span></span>
+        <span class="pr-cost">${maxed ? 'MAX' : `${fmt(cost)} ${path.currency === 'Exabytes' ? 'EB' : 'GN'}`}</span>`;
     } else {
       row.innerHTML = `
         <span class="pr-name">${up.name}</span>
@@ -512,10 +521,36 @@ function uiTick() {
     }
 
     if (activeScreen === 'upgrades') {
-      // Only flip affordability classes; rebuilding every frame would kill taps.
-      document.querySelectorAll('.up-row').forEach((row, i) => {
-        const unit = UNIT_REGISTRY[i];
+      // Update the fields that move without rebuilding the rows, because a
+      // rebuild between a pointerdown and its click would swallow the tap.
+      // Rows are matched by unit key: the shop only shows the current tab, so
+      // counting rows would point at the wrong section.
+      document.querySelectorAll('#sub-list .up-row').forEach((row) => {
+        const unit = UNITS_BY_KEY.get(row.dataset.unit);
         if (!unit) return;
+
+        const level = ownedOf(unit.key);
+        const cost = unitCost(unit);
+        const affordable = state.data >= cost;
+        row.classList.toggle('is-affordable', affordable);
+
+        const ownedEl = row.querySelector('.up-owned');
+        if (ownedEl) ownedEl.textContent = `Lv ${level}`;
+
+        const costEl = row.querySelector('.up-cost');
+        if (costEl) costEl.textContent = fmt(cost);
+
+        const msEl = row.querySelector('.up-milestone');
+        if (msEl) {
+          const nextAt = nextSectionMilestone(unit);
+          if (nextAt) {
+            msEl.textContent = `NEXT ×2 at Lv ${nextAt}`;
+            msEl.classList.remove('is-done');
+          } else {
+            msEl.textContent = `ALL MILESTONES ×${Math.pow(2, sectionMilestones(unit))}`;
+            msEl.classList.add('is-done');
+          }
+        }
       });
     }
   }

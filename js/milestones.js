@@ -19,6 +19,14 @@ function checkMilestones() {
     const previousPhase = state.phase;
     state.phase = Math.max(state.phase, m.phase);
 
+    // One-time gate reward. Recorded by gate id, so it is paid once per save
+    // and can never be re-earned by crossing the same gate on a later run.
+    if (!Array.isArray(state.gatesPaid)) state.gatesPaid = [];
+    if (!state.gatesPaid.includes(m.id)) {
+      state.gatesPaid.push(m.id);
+      logConsole(`gate reward — all output ×${GATE_REWARD}`, 'ok');
+    }
+
     logConsole(m.text, 'ai');
     pushNarrative(m.text, 'ai');
     showToast('MILESTONE', m.text);

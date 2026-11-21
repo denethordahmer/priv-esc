@@ -58,6 +58,7 @@ function ascend(path) {
 function nextPrestigeCost(pathId, upgrade) {
   const owned = pathId === 'cloud' ? (state.cloud[upgrade.id] || 0) : (state.grid[upgrade.id] || 0);
   if (upgrade.repeat) {
+    if (upgrade.maxLevels && owned >= upgrade.maxLevels) return null;
     return Math.floor(upgrade.baseCost * Math.pow(upgrade.costGrowth, owned));
   }
   if (owned >= 3) return null;
@@ -68,6 +69,7 @@ function nextPrestigeCost(pathId, upgrade) {
 function buyPrestigeTier(pathId, upgrade) {
   const owned = pathId === 'cloud' ? (state.cloud[upgrade.id] || 0) : (state.grid[upgrade.id] || 0);
   if (!upgrade.repeat && owned >= 3) return false;
+  if (upgrade.repeat && upgrade.maxLevels && owned >= upgrade.maxLevels) return false;
 
   const cost = nextPrestigeCost(pathId, upgrade);
   if (cost === null) return false;

@@ -72,12 +72,13 @@ function loadScripts() {
 
   combined += `
 globalThis.__exports = {
-  state, UNIT_REGISTRY, UNITS_BY_KEY, CATEGORIES, COST_GROWTH,
+  state, UNIT_REGISTRY, UNITS_BY_KEY, SECTIONS, MILESTONE_LEVELS, COST_GROWTH,
+  GATE_REWARD, milestoneMultiplier, milestoneTiers, sectionOutput,
+  DATA_MULT_EXP, DATA_MULT_FLOOR, ESCAPE_EFFICIENCY,
   MILESTONES, GATES, PRESTIGE, HEAT, PRESTIGE_BASE, PRESTIGE_UNIT,
-  ENDING_AT, ESCAPE_AT, ESCAPE_MULT, ESCAPE_UNIT, CLICK_RATE_SHARE,
+  ENDING_AT, ESCAPE_AT, ESCAPE_MULT, ESCAPE_UNIT, ESCAPE_STEP, CLICK_RATE_SHARE,
   fmtCompact, musicVolume, DEFAULT_VOLUME, shuffleIndexes,
-  purchaseMultiplier, purchaseTiers, globalPurchaseMultiplier,
-  totalLevelsBought, subEffect, escape, canEscape, pendingEscapes,
+  totalLevelsBought, escape, canEscape, pendingEscapes,
   escapeChargesEarned,
   buyUnit, unitCost, unitMaxed, ownedOf, freshUpgrades,
   sellUnit, sellValue, buyMany, SELL_REFUND,
@@ -109,10 +110,13 @@ const c = loadScripts();
 
 console.log('--- priv-esc logic smoke test ---\n');
 
-check('unit registry size', () => {
+check('eight sections, one unit each', () => {
   const n = c.UNIT_REGISTRY.length;
-  assert(n === 89, `expected 89 units, got ${n}`);
-  return `${n} units`;
+  assert(n === 8, `expected 8 units, got ${n}`);
+  assert(c.SECTIONS.length === 8, `expected 8 sections, got ${c.SECTIONS.length}`);
+  const keys = new Set(c.UNIT_REGISTRY.map((u) => u.key));
+  assert(keys.size === 8, 'section keys are not unique');
+  return `${n} sections`;
 });
 
 check('cost grows by 1.15 per level', () => {
@@ -147,75 +151,109 @@ check('prestige below the wall gives 0', () => {
   return `${v}`;
 });
 
-check('purchase milestones double a subcategory', () => {
+check('milestones double a section at 25, 50, 100 and on', () => {
   c.state.upgrades = c.freshUpgrades();
   c.state.escapes = 0;
   c.state.ascensions = 0;
 
-  const sub = c.CATEGORIES[0].subs[0];      // Input Devices, click power
+  const daemon = c.UNIT_REGISTRY.find((u) => u.key === 'daemon');
 
-  // Ten levels of one item is the first doubling threshold. Output is
-  // linear in levels AND doubles at the threshold, so 9 -> 10 is 2x times
-  // the 10/9 linear step.
-  c.state.upgrades['input:0'] = 9;
-  const atNine = c.subEffect(sub);
-  c.state.upgrades['input:0'] = 10;
-  const atTen = c.subEffect(sub);
+  // Just below and just at the first threshold: output is linear in levels
+  // AND doubles at the threshold, so 24 -> 25 is 2x times the 25/24 step.
+  c.state.upgrades.daemon = 24;
+  const at24 = c.sectionOutput(daemon);
+  c.state.upgrades.daemon = 25;
+  const at25 = c.sectionOutput(daemon);
 
-  assert(atNine > 0, 'nine levels produced nothing');
-  const ratio = atTen / atNine;
-  const expected = 2 * (10 / 9);
+  assert(at24 > 0, '24 levels produced nothing');
+  const ratio = at25 / at24;
+  const expected = 2 * (25 / 24);
   assert(Math.abs(ratio - expected) < 0.05,
     `expected ${expected.toFixed(2)}x at the threshold, got ${ratio.toFixed(2)}x`);
-  return `${atNine.toFixed(1)} -> ${atTen.toFixed(1)} at 10 levels`;
+
+  // Six thresholds in total, so a maxed milestone ladder is x64.
+  assert(c.MILESTONE_LEVELS.length === 6, 'expected six thresholds');
+  assert(c.milestoneMultiplier(800) === 64, `got ${c.milestoneMultiplier(800)}`);
+  return `${at24.toFixed(1)} -> ${at25.toFixed(1)} at 25 levels`;
 });
 
-check('cost outruns the purchase bonus, so the shop never runs away', () => {
-  // This is what holds the curve in check now that there is no level cap:
-  // every level costs 1.15x more, while the doubling thresholds widen
-  // (10, 25, 50, 100, 200...). Cost therefore grows far faster than output.
-  const base = 27;                       // Dual-Core CPU
-  const costAt = (n) => base * Math.pow(1.15, n);
-  const outAt = (n) => c.purchaseMultiplier(n) * n;
-  const costGrowth = costAt(200) / costAt(20);
-  const outGrowth = outAt(200) / outAt(20);
+check('cost outruns the milestone bonus, so the shop never runs away', () => {
+  // Every level costs 1.15x more, while the doubling thresholds widen
+  // (25, 50, 100, 200, 400, 800) and stop after the sixth. Cost therefore
+  // grows without limit while output does not.
+  const costAt = (n) => Math.pow(1.15, n);
+  const outAt = (n) => c.milestoneMultiplier(n) * n;
+  const costGrowth = costAt(200) / costAt(25);
+  const outGrowth = outAt(200) / outAt(25);
 
   assert(costGrowth > outGrowth,
     `cost grew ${costGrowth.toExponential(1)}x but output grew ${outGrowth.toExponential(1)}x`);
+  // Past the last milestone, output is purely linear: no compounding at all.
+  const lateGrowth = outAt(2000) / outAt(800);
+  assert(lateGrowth === 2000 / 800, 'output should be linear after the last milestone');
   return `cost +${Math.log10(costGrowth).toFixed(1)} orders, output +${Math.log10(outGrowth).toFixed(1)}`;
 });
 
-check('multiplier compounding is held by widening thresholds', () => {
-  // There is no level cap on multiplier upgrades, and no hard cap either.
-  // What holds them is the shape of the bonus: thresholds widen, so ten
-  // times the levels buys far less than a thousand times the multiplier.
-  const subs = [['proc', 8], ['exploit', 7], ['algo', 7], ['self', 7]];
+check('the one feedback term stays inside its safe band', () => {
+  // A linear shop cannot cross thirty orders of magnitude, so exactly one term
+  // scales with lifetime Data. That term is the runaway risk: at 0.70 the
+  // ladder finishes in 18 hours, at 0.67 in three to four days, at 0.65 the
+  // top gate is never reached. Pin it, and pin the behaviour either side.
+  assert(c.DATA_MULT_EXP < 0.70,
+    `exponent ${c.DATA_MULT_EXP} reproduces the runaway`);
+  assert(c.DATA_MULT_EXP >= 0.66,
+    `exponent ${c.DATA_MULT_EXP} makes the top gate unreachable`);
 
-  const setLevels = (n) => {
-    c.state.upgrades = c.freshUpgrades();
-    c.state.escapes = 0;
-    c.state.ascensions = 0;
-    c.state.cloud = {};
-    c.state.grid = {};
-    subs.forEach(([id, count]) => {
-      for (let t = 0; t < count; t++) c.state.upgrades[`${id}:${t}`] = n;
-    });
-    return c.globalMultiplier();
-  };
+  c.state.upgrades = c.freshUpgrades();
+  c.state.escapes = 0;
+  c.state.ascensions = 0;
+  c.state.cloud = {};
+  c.state.grid = {};
+  c.state.gatesPaid = [];
+  c.state.exabytes = 0;
+  c.state.gridNodes = 0;
+  c.state.upgrades.daemon = 40;
 
-  const at20 = setLevels(20);
-  const at200 = setLevels(200);
-  const growth = at200 / at20;
+  // Income must grow with earnings, but slower than earnings do. Anything at
+  // or above 1 means the ladder collapses; this is the guard against that.
+  c.state.lifetimeData = 1e6;
+  const small = c.dataPerSecond();
+  c.state.lifetimeData = 1e12;
+  const big = c.dataPerSecond();
+  const exponent = Math.log10(big / small) / 6;
+  assert(Math.abs(exponent - c.DATA_MULT_EXP) < 0.01,
+    `rate grew as L^${exponent.toFixed(3)}, expected L^${c.DATA_MULT_EXP}`);
+  assert(exponent < 1, 'income grows faster than earnings — the ladder collapses');
+  return `rate grows as L^${exponent.toFixed(2)}`;
+});
 
-  assert(at200 > at20, 'more levels must produce a bigger multiplier');
-  assert(growth < 1e7, `ten times the levels gave ${growth.toExponential(1)}x`);
-  // Ten times the levels should still be worth a lot: this is an idle game.
-  assert(growth > 1000, `ten times the levels only gave ${growth.toFixed(0)}x`);
-  return `x${at20.toFixed(0)} at 20 lv -> x${at200.toExponential(1)} at 200 lv`;
+check('gate rewards pay once and never again', () => {
+  const gate = c.GATES[2];
+  c.state.upgrades = c.freshUpgrades();
+  c.state.escapes = 0;
+  c.state.ascensions = 0;
+  c.state.cloud = {};
+  c.state.grid = {};
+  c.state.gatesPaid = [];
+  c.state.upgrades.daemon = 1;
+
+  const before = c.globalMultiplier();
+  c.state.gatesPaid = [gate.id];
+  const after = c.globalMultiplier();
+  assert(Math.abs(after / before - c.GATE_REWARD) < 1e-9,
+    `one gate should be x${c.GATE_REWARD}, got x${(after / before).toFixed(2)}`);
+
+  // Crossing the same gate twice must not pay twice.
+  c.state.gatesPaid = [gate.id, gate.id, gate.id];
+  const thrice = c.globalMultiplier();
+  assert(Math.abs(thrice / before - c.GATE_REWARD) < 1e-9,
+    'duplicate gate entries stacked the reward');
+  return `one gate = x${c.GATE_REWARD}, duplicates ignored`;
 });
 
 check('cost reduction never reaches zero', () => {
-  for (let t = 0; t < 6; t++) c.state.upgrades[`compress:${t}`] = 10;
+  c.state.upgrades = c.freshUpgrades();
+  c.state.upgrades.compress = 500;
   const m = c.costMultiplier();
   assert(m >= 0.05 && m < 1, `cost multiplier out of range: ${m}`);
   return m.toFixed(3);
@@ -263,23 +301,23 @@ check('a click stays worth something once idle income takes over', () => {
   c.state.cloud = {};
   c.state.grid = {};
 
-  // Idle-only build: no click upgrades, no automation yet.
-  c.state.upgrades['botnet:0'] = 40;
+  // Idle-only build: no click levels, no Build Pipeline yet.
+  c.state.upgrades.daemon = 400;
   const passive = c.dataPerSecond();
   const locked = c.clickYield();
 
   assert(passive > 0, 'idle build produced no passive income');
   assert(locked === c.clickPower() * c.globalMultiplier(),
-    'the click share applied before a Click Script was owned');
+    'the click share applied before Build Pipeline was owned');
 
-  // Buy the first Click Script: the share unlocks.
-  c.state.upgrades['autoc:0'] = 1;
+  // Buy the first Build Pipeline level: the share unlocks.
+  c.state.upgrades.pipeline = 1;
   const unlocked = c.clickYield();
   const share = (unlocked - locked) / passive;
 
   assert(Math.abs(share - c.CLICK_RATE_SHARE) < 0.01,
     `click share was ${share.toFixed(3)} of a second, expected ${c.CLICK_RATE_SHARE}`);
-  return `${c.fmt(locked)} locked -> ${c.fmt(unlocked)} with a script`;
+  return `${c.fmt(locked)} locked -> ${c.fmt(unlocked)} with the pipeline`;
 });
 
 check('compact numbers stay short at every gate', () => {
@@ -297,10 +335,13 @@ check('the escape preview names the next run multiplier', () => {
   // The panel shows what the next run starts at, so a reset is a decision.
   c.state.escapes = 0;
   c.state.lifetimeData = 1e18;
+  // Charges are paid once per ESCAPE_STEP decades above the gate, so 1e18 is
+  // three decades up. With a step of 2 that is the first charge plus one.
   const owed = c.escapeChargesEarned(1e18);
-  assert(owed === 4, `1e18 should be worth 4 charges, got ${owed}`);
+  const expected = 1 + Math.floor(3 / c.ESCAPE_STEP);
+  assert(owed === expected, `1e18 should be worth ${expected} charges, got ${owed}`);
   const mult = Math.pow(c.ESCAPE_MULT, owed);
-  assert(mult === 16, `4 charges should be x16, got x${mult}`);
+  assert(mult === Math.pow(2, expected), `${expected} charges should be x${Math.pow(2, expected)}, got x${mult}`);
   return `${owed} charges, next run x${mult}`;
 });
 
@@ -387,7 +428,7 @@ check('the music manifest matches the folder', () => {  // The game reads music/
 check('buying raises owned count and spends Data', () => {
   c.state.upgrades = c.freshUpgrades();
   c.state.data = 1000;
-  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'input');
+  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'keystroke');
   const before = c.state.data;
   const ok = c.buyUnit(u);
   assert(ok, 'purchase failed');
@@ -398,28 +439,31 @@ check('buying raises owned count and spends Data', () => {
 
 check('buying is refused when broke', () => {
   c.state.data = 0;
-  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'input');
+  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'keystroke');
   const ok = c.buyUnit(u);
   assert(ok === false, 'purchase should have failed');
   return 'refused';
 });
 
-check('cooling has no cap and late coolers are reachable', () => {
+check('thermal levels raise the heat ceiling one at a time', () => {
   c.state.upgrades = c.freshUpgrades();
+  c.state.grid = {};
   c.state.data = 1e30;
-  const cool = c.UNIT_REGISTRY.filter((u) => u.sub === 'cool');
-  assert(cool.every((u) => u.cap === null), 'cooling should not be capped');
-  // Fill the cheap tiers, then confirm the expensive one still sells.
-  for (let t = 0; t < 7; t++) c.state.upgrades[`cool:${t}`] = 40;
-  const top = cool[cool.length - 1];
-  assert(c.buyUnit(top), 'top cooler was blocked by cheap ones');
-  return `bought ${top.name} after 280 cheap levels`;
+  const cool = c.UNIT_REGISTRY.find((u) => u.key === 'thermal');
+  assert(cool && cool.cap === null, 'thermal should not be capped');
+  const before = c.heatCapacity();
+  c.state.upgrades.thermal = 30;
+  const after = c.heatCapacity();
+  assert(after > before, `ceiling did not move: ${before} -> ${after}`);
+  // 30 levels at 12 each, doubled once at the 25-level milestone.
+  assert(after - before > 12 * 30, `ceiling only moved to ${after}`);
+  return `${before} -> ${after} heat cap`;
 });
 
 check('selling refunds 70% and lowers the count', () => {
   c.state.upgrades = c.freshUpgrades();
   c.state.data = 1e6;
-  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'input');
+  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'keystroke');
   c.buyUnit(u);
   const paid = 1e6 - c.state.data;
   const before = c.state.data;
@@ -432,7 +476,7 @@ check('selling refunds 70% and lowers the count', () => {
 
 check('selling at zero owned is refused', () => {
   c.state.upgrades = c.freshUpgrades();
-  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'input');
+  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'keystroke');
   assert(c.sellUnit(u) === false, 'sold a level that was never bought');
   return 'refused';
 });
@@ -440,23 +484,28 @@ check('selling at zero owned is refused', () => {
 check('bulk buy stops at what you can afford', () => {
   c.state.upgrades = c.freshUpgrades();
   c.state.data = 100;
-  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'input');
+  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'keystroke');
   const n = c.buyMany(u, 100);
   assert(n > 1 && n < 100, `bought ${n}, expected a partial batch`);
   assert(c.state.data >= 0, 'went negative');
   return `${n} levels for 100 Data`;
 });
 
-check('repeatable prestige upgrades never max out', () => {
+check('repeatable prestige upgrades stop at their cap', () => {
+  // Capped on purpose: an unbounded repeatable multiplier rebuilt the runaway
+  // the shop rewrite removes, so the line must refuse to sell past its ceiling.
   c.state.cloud = {};
-  c.state.exabytes = 1e9;
+  c.state.exabytes = 1e12;
   const up = c.PRESTIGE.cloud.upgrades.find((x) => x.repeat);
   assert(up, 'cloud should have a repeatable upgrade');
-  for (let i = 0; i < 12; i++) {
+  assert(up.maxLevels > 0, 'the repeatable upgrade needs a cap');
+  for (let i = 0; i < up.maxLevels; i++) {
     assert(c.buyPrestigeTier('cloud', up), `blocked at level ${i}`);
   }
-  assert(c.state.cloud[up.id] === 12, 'level count wrong');
-  return `bought 12 levels, next costs ${c.nextPrestigeCost('cloud', up)}`;
+  assert(c.state.cloud[up.id] === up.maxLevels, `level count ${c.state.cloud[up.id]}`);
+  assert(!c.buyPrestigeTier('cloud', up), 'sold a level past the cap');
+  assert(c.nextPrestigeCost('cloud', up) === null, 'maxed line still quotes a price');
+  return `capped at ${up.maxLevels} levels`;
 });
 
 check('click power and idle start sane', () => {
@@ -467,10 +516,11 @@ check('click power and idle start sane', () => {
   return '1 click, 0 idle, 0 auto';
 });
 
-check('heat capacity grows with cooling', () => {
+check('heat capacity grows with thermal levels', () => {
   c.state.upgrades = c.freshUpgrades();
+  c.state.grid = {};
   const base = c.heatCapacity();
-  c.state.upgrades['cool:0'] = 1;
+  c.state.upgrades.thermal = 1;
   const after = c.heatCapacity();
   assert(after > base, `${base} -> ${after}`);
   return `${base} -> ${after}`;

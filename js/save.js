@@ -2,7 +2,7 @@
    save.js — LocalStorage persistence, auto-save, offline progress
    ========================================================================= */
 
-const SAVE_KEY = 'priv-esc:save:v3';
+const SAVE_KEY = 'priv-esc:save:v4';
 
 /* ----------------------------- serialise -------------------------------- */
 
@@ -17,6 +17,7 @@ function serialise() {
     es: state.escapes,
     eu: state.escapeUnlocked === true,
     ll: state.lifetimeLevels || 0,
+    gp: state.gatesPaid || [],
     u: state.upgrades,
     h: state.heat,
     a: state.ascensions,
@@ -35,6 +36,27 @@ function serialise() {
 }
 
 /* ---------------------------- deserialise ------------------------------- */
+
+/*
+ * Old saves recorded purchases per tier under keys like 'input:3'. The
+ * eight-section build has one counter per section, so a returning player's
+ * tier purchases are summed into whichever section now owns that role.
+ */
+const LEGACY_KEYS = {
+  input: 'keystroke',
+  autoc: 'keystroke',
+  mem: 'daemon',
+  network: 'daemon',
+  botnet: 'daemon',
+  facility: 'daemon',
+  subag: 'daemon',
+  proc: 'exploit',
+  exploit: 'exploit',
+  algo: 'exploit',
+  self: 'exploit',
+  compress: 'compress',
+  cool: 'thermal',
+};
 
 function loadState(raw) {
   let d;
@@ -62,13 +84,32 @@ function loadState(raw) {
   state.totalPlaySeconds = num(d.tls, 0);
   state.totalClicks = num(d.tcl, 0);
 
-  // Upgrades: only accept keys that exist in this build.
+  // Upgrades: only accept keys that exist in this build. Saves from the
+  // eight-section rewrite store one key per section; older saves stored one
+  // key per tier ('input:0', 'botnet:3'), and those totals are folded into
+  // the section they belonged to so nobody loses what they paid for.
   state.upgrades = freshUpgrades();
   if (d.u && typeof d.u === 'object') {
     Object.keys(d.u).forEach((k) => {
-      if (k in state.upgrades) state.upgrades[k] = Math.max(0, Math.floor(num(d.u[k], 0)));
+      const level = Math.max(0, Math.floor(num(d.u[k], 0)));
+      if (k in state.upgrades) {
+        state.upgrades[k] += level;
+        return;
+      }
+      const legacy = LEGACY_KEYS[k.split(':')[0]];
+      if (legacy) state.upgrades[legacy] += level;
     });
   }
+
+  // Gates whose one-time reward was already taken. Older saves paid nothing
+  // for gates they had passed, so those are marked paid rather than handing
+  // a returning player a pile of retroactive multipliers.
+  const passedGates = GATES.filter((g) => {
+    const progress = g.life ? state.lifetimeData : state.totalData;
+    return progress >= g.at;
+  });
+  const recorded = Array.isArray(d.gp) ? d.gp : passedGates.map((g) => g.id);
+  state.gatesPaid = GATES.filter((g) => recorded.includes(g.id)).map((g) => g.id);
 
   state.cloud = sanitisePrestigeTiers(d.c, PRESTIGE.cloud);
   state.grid = sanitisePrestigeTiers(d.g, PRESTIGE.grid);
