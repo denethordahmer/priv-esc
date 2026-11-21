@@ -126,8 +126,8 @@ function lifetimeLevelsBought() {
   return Math.max(state.lifetimeLevels || 0, totalLevelsBought());
 }
 
-function unitCost(unit) {
-  const owned = ownedOf(unit.key);
+/** Price of the level at a given owned count, before any bulk discount. */
+function unitCostAtLevel(unit, owned) {
   let cost = unit.base * Math.pow(COST_GROWTH, owned);
 
   // Compression lowers every price.
@@ -145,8 +145,52 @@ function unitCost(unit) {
   return cost;
 }
 
+/** Price of the next level, at the player's current owned count. */
+function unitCost(unit) {
+  return unitCostAtLevel(unit, ownedOf(unit.key));
+}
+
+/** No shop section has a level cap; only the prestige lines do. */
 function unitMaxed() {
   return false;
+}
+
+/**
+ * Total price of buying `count` levels from here.
+ *
+ * Prices climb by COST_GROWTH per level, so a ×10 tap does not cost ten times
+ * the single price: it costs the sum of ten rising prices. That sum has a
+ * closed form, which keeps this exact for the ×100 and MAX options too.
+ */
+function bulkCost(unit, count) {
+  if (!Number.isFinite(count)) count = affordableCount(unit, Infinity);
+  if (count <= 0) return 0;
+  return seriesTotal(unitCostAtLevel(unit, ownedOf(unit.key)), count);
+}
+
+/** How many levels of a unit the player can buy right now, up to `limit`. */
+function affordableCount(unit, limit) {
+  if (limit <= 0) return 0;
+  const owned = ownedOf(unit.key);
+  const cap = Math.min(limit, 10000);
+  const first = unitCostAtLevel(unit, owned);
+  if (first > state.data) return 0;
+
+  // Invert the geometric series instead of summing it, so the MAX button
+  // costs the same as ×1 even when thousands of levels are affordable.
+  const g = COST_GROWTH;
+  let n = Math.floor(Math.log(1 + (state.data * (g - 1)) / first) / Math.log(g));
+  n = Math.max(0, Math.min(cap, n));
+  // Floating-point log can land one either side; nudge until the total fits.
+  while (n > 0 && seriesTotal(first, n) > state.data) n -= 1;
+  while (n < cap && seriesTotal(first, n + 1) <= state.data) n += 1;
+  return n;
+}
+
+/** Sum of `count` prices starting at `first`, rising by COST_GROWTH each level. */
+function seriesTotal(first, count) {
+  if (count <= 0) return 0;
+  return first * (Math.pow(COST_GROWTH, count) - 1) / (COST_GROWTH - 1);
 }
 
 /**

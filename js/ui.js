@@ -190,13 +190,16 @@ function renderSide() {
     dom.nextCost().textContent = '—';
     dom.nextProgress().style.width = '100%';
   } else {
-    const cost = unitCost(unit);
+    // The panel quotes a batch price whenever a tap would buy several levels,
+    // so the progress bar is measuring against the real outlay.
+    const quote = purchaseQuote(unit);
+    const cost = quote.need;
     // The effect is printed under the name so the panel says what the money
     // buys, not just what it costs.
     dom.nextName().textContent = unit.name;
     const effectEl = document.getElementById('next-effect');
     if (effectEl) effectEl.textContent = sectionEffectText(unit);
-    dom.nextCost().textContent = `${fmt(cost)} DATA`;
+    dom.nextCost().textContent = `${fmt(cost)} DATA${quote.levels > 1 ? ` ×${quote.levels}` : ''}`;
     dom.nextProgress().style.width = `${Math.min(100, (state.data / cost) * 100)}%`;
   }
 
@@ -301,7 +304,8 @@ function renderSubList() {
 
   UNIT_REGISTRY.forEach((unit) => {
     if (SECTION_TAB[unit.key] !== activeCat) return;
-    if (buyableOnly && state.data < unitCost(unit)) return;
+    // Each row is judged by the price of one tap at the current multiplier.
+    if (buyableOnly && purchaseQuote(unit).count === 0) return;
     wrap.appendChild(upgradeRow(unit));
   });
 }
@@ -324,8 +328,8 @@ function sectionEffectText(unit) {
 
 function upgradeRow(unit) {
   const level = ownedOf(unit.key);
-  const cost = unitCost(unit);
-  const affordable = state.data >= cost;
+  const quote = purchaseQuote(unit);
+  const affordable = quote.count > 0;
 
   const row = document.createElement('button');
   row.className = `up-row ${affordable ? 'is-affordable' : ''} ${level > 0 ? 'is-owned' : ''}`;
@@ -345,17 +349,13 @@ function upgradeRow(unit) {
     <span class="up-meta">
       <span class="up-owned">Lv ${level}</span>
       <span class="up-effect">${sectionEffectText(unit)}</span>
-      <span class="up-cost">${fmt(cost)}</span>
+      <span class="up-cost">${quoteLabel(quote)}</span>
     </span>
     ${milestone}`;
 
   row.addEventListener('click', () => {
-    const mult = buyMultiplier();
-    if (mult === 1) {
-      if (buyUnit(unit)) uiRender();
-    } else if (buyMany(unit, mult) > 0) {
-      uiRender();
-    }
+    buyMany(unit, buyMultiplier());
+    uiRender();
   });
 
   // Selling is a separate control so a tap on the row still buys.
@@ -378,6 +378,30 @@ function upgradeRow(unit) {
 function buyMultiplier() {
   const m = state.settings.buyMultiplier;
   return m === 'max' ? Infinity : (Number(m) || 1);
+}
+
+/**
+ * What one tap on a shop row would charge right now.
+ *
+ * Each level costs more than the last, so a ×10 tap is not ten times the
+ * single price. `need` is the price of a full batch at the current setting,
+ * and `levels` is how many levels that batch covers. Both the row label and
+ * the NEXT bar read from here, so neither can quote a price the tap will not
+ * charge.
+ */
+function purchaseQuote(unit) {
+  const limit = buyMultiplier();
+  const single = unitCost(unit);
+  const count = unitMaxed(unit) ? 0 : affordableCount(unit, limit);
+  // MAX has no fixed batch size, so a tap is quoted as one level.
+  const levels = count > 0 ? count : (Number.isFinite(limit) ? limit : 1);
+  return { limit, count, single, levels, need: seriesTotal(single, levels) };
+}
+
+/** Price label for a shop row: the batch total, plus the level count if >1. */
+function quoteLabel(quote) {
+  if (quote.levels > 1) return `${fmt(quote.need)} ×${quote.levels}`;
+  return fmt(quote.single);
 }
 
 /* ----------------------------- prestige screen --------------------------- */
@@ -555,9 +579,10 @@ function uiTick() {
     }
     const unit = nextUnitCache;
     if (unit) {
-      const cost = unitCost(unit);
+      const quote = purchaseQuote(unit);
+      const cost = quote.need;
       dom.nextName().textContent = unit.name;
-      dom.nextCost().textContent = `${fmt(cost)} DATA`;
+      dom.nextCost().textContent = `${fmt(cost)} DATA${quote.levels > 1 ? ` ×${quote.levels}` : ''}`;
       dom.nextProgress().style.width = `${Math.min(100, (state.data / cost) * 100)}%`;
     }
 
@@ -571,15 +596,14 @@ function uiTick() {
         if (!unit) return;
 
         const level = ownedOf(unit.key);
-        const cost = unitCost(unit);
-        const affordable = state.data >= cost;
-        row.classList.toggle('is-affordable', affordable);
+        const quote = purchaseQuote(unit);
+        row.classList.toggle('is-affordable', quote.count > 0);
 
         const ownedEl = row.querySelector('.up-owned');
         if (ownedEl) ownedEl.textContent = `Lv ${level}`;
 
         const costEl = row.querySelector('.up-cost');
-        if (costEl) costEl.textContent = fmt(cost);
+        if (costEl) costEl.textContent = quoteLabel(quote);
 
         const msEl = row.querySelector('.up-milestone');
         if (msEl) {
@@ -775,6 +799,9 @@ function initSettings() {
         const v = btn.dataset.mult;
         state.settings.buyMultiplier = v === 'max' ? 'max' : Number(v);
         sync();
+        // Row prices are batch totals, so they have to be repainted the
+        // moment the multiplier changes.
+        renderUpgrades();
       });
     });
     sync();

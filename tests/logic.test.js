@@ -80,7 +80,8 @@ globalThis.__exports = {
   fmtCompact, musicVolume, DEFAULT_VOLUME, shuffleIndexes,
   totalLevelsBought, escape, canEscape, pendingEscapes,
   escapeChargesEarned,
-  buyUnit, unitCost, unitMaxed, ownedOf, freshUpgrades, tickAutoTaps,
+  buyUnit, unitCost, unitCostAtLevel, bulkCost, affordableCount, unitMaxed,
+  ownedOf, freshUpgrades, tickAutoTaps,
   nextTargetUnit, nextMilestoneTarget, bestValueUnit, unitValueScore,
   sellUnit, sellValue, buyMany, SELL_REFUND,
   clickPower, idlePerSecond, autoClicksPerSecond, globalMultiplier, dataPerSecond, rampPerSecond,
@@ -673,6 +674,48 @@ check('bulk buy stops at what you can afford', () => {
   assert(n > 1 && n < 100, `bought ${n}, expected a partial batch`);
   assert(c.state.data >= 0, 'went negative');
   return `${n} levels for 100 Data`;
+});
+
+check('a ×N quote equals what the tap actually spends', () => {
+  // The shop prints bulkCost(); the click deducts the same levels. If the two
+  // drift apart the row lies about its price, which is the bug being fixed.
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 1e6;
+  c.state.grid = {};
+  c.state.exabytes = 0;
+  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'keystroke');
+
+  for (const limit of [1, 10, 100]) {
+    c.state.upgrades = c.freshUpgrades();
+    c.state.data = 1e6;
+    const n = c.affordableCount(u, limit);
+    const quote = c.bulkCost(u, n);
+    const before = c.state.data;
+    const bought = c.buyMany(u, limit);
+    const spent = before - c.state.data;
+    assert(bought === n, `×${limit} bought ${bought}, quoted ${n}`);
+    assert(Math.abs(spent - quote) < quote * 1e-9,
+      `×${limit} spent ${spent} but quoted ${quote}`);
+  }
+  return '×1, ×10 and ×100 agree';
+});
+
+check('×10 total is the sum of the ten rising prices', () => {
+  // Levels get dearer as they stack (1.15 per level), so the batch price is
+  // the arithmetic sum of the next ten single prices, not ten times the first.
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 0;
+  c.state.grid = {};
+  c.state.exabytes = 0;
+  const u = c.UNIT_REGISTRY.find((x) => x.sub === 'keystroke');
+
+  let walked = 0;
+  for (let i = 0; i < 10; i += 1) walked += c.unitCostAtLevel(u, i);
+  const ten = c.bulkCost(u, 10);
+  assert(Math.abs(ten - walked) < walked * 1e-9,
+    `×10 was ${ten}, summing prices gives ${walked}`);
+  assert(ten > c.unitCost(u) * 10, `×10 was ${ten}, no dearer than 10 singles`);
+  return `${ten.toFixed(2)} for ten`;
 });
 
 check('repeatable prestige upgrades stop at their cap', () => {
