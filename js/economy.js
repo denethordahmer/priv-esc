@@ -73,41 +73,56 @@ function buyUnit(unit) {
  * Best-value purchase: lowest cost per unit of production added.
  * Used by the "Buy best" button and by Auto-Compiler.
  */
-function bestValueUnit() {
-  let best = null;
-  let bestScore = Infinity;
+/**
+ * How much one level of a section is worth per Data spent.
+ * Higher is better. Used by Buy Best and by the NEXT panel so the two agree
+ * on what "good" means.
+ */
+function unitValueScore(unit) {
   const mult = globalMultiplier();
   const click = clickPower();
   const rate = dataPerSecond();
+  const cost = unitCost(unit);
+
+  let gain;
+  switch (unit.kind) {
+    case 'click':
+      gain = unit.eff * 1.0 * mult;            // one extra click per second of effort
+      break;
+    case 'auto':
+      gain = unit.eff * click * mult;
+      break;
+    case 'idle':
+      gain = unit.eff * mult;
+      break;
+    case 'ramp':
+      // A ramp level adds its step every second, so it compounds with time
+      // spent in the run. Weighted as if it pays for a minute.
+      gain = unit.eff * mult * 60;
+      break;
+    case 'mult':
+      gain = Math.max(rate, 1) * unit.eff;
+      break;
+    case 'cost':
+      gain = Math.max(state.data, cost) * unit.eff * 0.01;
+      break;
+    default:
+      gain = cost * 0.0005;                    // heat: low priority
+  }
+
+  return gain / cost;
+}
+
+function bestValueUnit() {
+  let best = null;
+  let bestScore = -Infinity;
 
   UNIT_REGISTRY.forEach((unit) => {
     if (unitMaxed(unit)) return;
-    const cost = unitCost(unit);
-    if (cost > state.data) return;
+    if (unitCost(unit) > state.data) return;
 
-    let gain;
-    switch (unit.kind) {
-      case 'click':
-        gain = unit.eff * 1.0 * mult;            // one extra click per second of effort
-        break;
-      case 'auto':
-        gain = unit.eff * click * mult;
-        break;
-      case 'idle':
-        gain = unit.eff * mult;
-        break;
-      case 'mult':
-        gain = Math.max(rate, 1) * unit.eff;
-        break;
-      case 'cost':
-        gain = Math.max(state.data, cost) * unit.eff * 0.01;
-        break;
-      default:
-        gain = cost * 0.0005;                    // heat: low priority
-    }
-
-    const score = cost / (gain + 1e-9);
-    if (score < bestScore) {
+    const score = unitValueScore(unit);
+    if (score > bestScore) {
       bestScore = score;
       best = unit;
     }
@@ -127,24 +142,73 @@ function cheapestUnit() {
 }
 
 /**
- * The cheapest unit the player cannot afford yet.
- * The NEXT panel shows this so the progress bar has a real goal to fill.
+ * The next purchase worth aiming at.
+ *
+ * The NEXT panel used to show the cheapest thing the player could not afford,
+ * which was often a section that would barely move the rate. This picks the
+ * best value among the units not yet affordable instead, so the bar points at
+ * something that actually speeds the run up.
+ *
+ * A very distant target makes a useless progress bar, so anything costing more
+ * than 50x the current Data falls back to the cheapest unaffordable unit.
  */
 function nextTargetUnit() {
-  let target = null;
-  let targetCost = Infinity;
+  let best = null;
+  let bestScore = -Infinity;
+  let cheapest = null;
+  let cheapestCost = Infinity;
 
   UNIT_REGISTRY.forEach((unit) => {
     if (unitMaxed(unit)) return;
     const cost = unitCost(unit);
-    if (cost > state.data && cost < targetCost) {
-      targetCost = cost;
-      target = unit;
+    const affordable = cost <= state.data;
+
+    if (!affordable && cost < cheapestCost) {
+      cheapestCost = cost;
+      cheapest = unit;
+    }
+    if (affordable) return;                    // aim at something still ahead
+
+    const score = unitValueScore(unit);
+    if (score > bestScore) {
+      bestScore = score;
+      best = unit;
     }
   });
 
-  // Late in the game every unit may be affordable; fall back to the cheapest.
-  return target || cheapestUnit();
+  if (!best) {
+    // Everything is affordable: point at the best value in the shop.
+    return bestValueUnit() || cheapestUnit();
+  }
+
+  // Too far away to fill the bar in a reasonable time.
+  if (state.data > 0 && unitCost(best) > state.data * 50) return cheapest || best;
+  return best;
+}
+
+/**
+ * The section closest to its next doubling, for the milestone countdown.
+ * Sections already in progress are preferred, because a level-0 section with
+ * a 25-level gap is not a useful thing to point at.
+ */
+function nextMilestoneTarget() {
+  let best = null;
+
+  UNIT_REGISTRY.forEach((unit) => {
+    const level = ownedOf(unit.key);
+    const nextAt = MILESTONE_LEVELS.find((step) => level < step);
+    if (!nextAt) return;
+
+    const gap = nextAt - level;
+    const started = level > 0;
+    const score = (started ? 0 : 1000) + gap;
+
+    if (!best || score < best.score) {
+      best = { unit, nextAt, gap, level, score };
+    }
+  });
+
+  return best;
 }
 
 /* --------------------------- automatic taps ----------------------------- */

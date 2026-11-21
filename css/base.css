@@ -570,6 +570,14 @@ ol {
   color: var(--text-dim);
 }
 
+/* The effect line under a NEXT name: what the money buys, not what it costs. */
+.next-effect {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-2);
+  margin-top: 2px;
+}
+
 /* --------------------------------------------------------------------------
    7. Other screens
    -------------------------------------------------------------------------- */

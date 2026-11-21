@@ -81,6 +81,7 @@ globalThis.__exports = {
   totalLevelsBought, escape, canEscape, pendingEscapes,
   escapeChargesEarned,
   buyUnit, unitCost, unitMaxed, ownedOf, freshUpgrades, tickAutoTaps,
+  nextTargetUnit, nextMilestoneTarget, bestValueUnit, unitValueScore,
   sellUnit, sellValue, buyMany, SELL_REFUND,
   clickPower, idlePerSecond, autoClicksPerSecond, globalMultiplier, dataPerSecond, rampPerSecond,
   costMultiplier, heatCapacity, dataPerSecond, clickYield,
@@ -319,6 +320,62 @@ check('the sleep ramp is linear in time, so it cannot run away', () => {
   const stepHuge = c.rampPerSecond();
   assert(stepSmall === stepHuge, 'the ramp step changed with lifetime Data');
   return `linear: ${ten.toFixed(1)} at 10s, ${twenty.toFixed(1)} at 20s`;
+});
+
+check('the NEXT panel aims at the best value still ahead', () => {
+  // The panel used to show the cheapest thing the player could not afford,
+  // which was often a section that barely moved the rate. It now picks the
+  // best value among what is still out of reach.
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 2000;
+  c.state.totalData = 2000;
+  c.state.lifetimeData = 2000;
+  c.state.escapes = 0;
+  c.state.ascensions = 0;
+  c.state.cloud = {};
+  c.state.grid = {};
+  c.state.gatesPaid = [];
+  c.state.ramp = 0;
+
+  const target = c.nextTargetUnit();
+  assert(target, 'no target at all');
+  assert(c.unitCost(target) > c.state.data,
+    `pointed at ${target.name}, which is already affordable`);
+
+  // A very distant target must not be shown: an 80K gate from 2K is 40x, but
+  // a 40,000x gate would leave the bar permanently empty.
+  c.state.data = 10;
+  const near = c.nextTargetUnit();
+  assert(near, 'no target when broke');
+  assert(c.unitCost(near) <= 500, `pointed at ${c.unitCost(near)} from 10 Data`);
+  return `${target.name} at ${c.fmt(c.unitCost(target))}`;
+});
+
+check('the milestone countdown picks a section that is close', () => {
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 1e6;
+  c.state.lifetimeData = 1e6;
+  c.state.escapes = 0;
+  c.state.ascensions = 0;
+  c.state.cloud = {};
+  c.state.grid = {};
+  c.state.gatesPaid = [];
+  c.state.ramp = 0;
+
+  // A section one level short of a doubling should win over untouched ones.
+  c.state.upgrades.daemon = 24;
+  const target = c.nextMilestoneTarget();
+  assert(target, 'no milestone target');
+  assert(target.unit.key === 'daemon', `picked ${target.unit.key} instead of daemon`);
+  assert(target.nextAt === 25, `next milestone was ${target.nextAt}`);
+  assert(target.gap === 1, `gap was ${target.gap}`);
+
+  // With nothing started, it should still offer something rather than nothing.
+  c.state.upgrades = c.freshUpgrades();
+  const fresh = c.nextMilestoneTarget();
+  assert(fresh, 'no target on a fresh save');
+  assert(fresh.nextAt === 25, `fresh target was level ${fresh.nextAt}`);
+  return `daemon 24 -> 25, then ${fresh.unit.key} -> ${fresh.nextAt}`;
 });
 
 check('the one feedback term stays inside its safe band', () => {

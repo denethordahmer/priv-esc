@@ -172,10 +172,12 @@ function renderHeat() {
 function renderSide() {
   dom.perClick().textContent = fmt(clickYield());
   dom.auto().textContent = fmt(autoClicksPerSecond());
-  dom.idle().textContent = fmt(idlePerSecond());
+  // The idle figure includes the Sleep Cycle ramp, which is the number the
+  // player watches climb, so it must match what is actually being earned.
+  dom.idle().textContent = fmt(idlePerSecond() + (state.ramp || 0));
   dom.mult().textContent = fmtMult(globalMultiplier());
 
-  // Next affordable-ish target, cached for a second so we do not scan 90 units a frame.
+  // Best-value target, cached for a second so we do not scan every unit a frame.
   const now = performance.now();
   if (!nextUnitCache || now - nextUnitCacheAt > 1000) {
     nextUnitCache = nextTargetUnit();
@@ -187,13 +189,51 @@ function renderSide() {
     dom.nextName().textContent = 'everything owned';
     dom.nextCost().textContent = '—';
     dom.nextProgress().style.width = '100%';
+  } else {
+    const cost = unitCost(unit);
+    // The effect is printed under the name so the panel says what the money
+    // buys, not just what it costs.
+    dom.nextName().textContent = unit.name;
+    const effectEl = document.getElementById('next-effect');
+    if (effectEl) effectEl.textContent = sectionEffectText(unit);
+    dom.nextCost().textContent = `${fmt(cost)} DATA`;
+    dom.nextProgress().style.width = `${Math.min(100, (state.data / cost) * 100)}%`;
+  }
+
+  paintMilestoneCountdown();
+}
+
+/**
+ * Milestone countdown under the NEXT panel.
+ *
+ * Milestones are the biggest jumps in the game, so the bar and the level gap
+ * are shown next to the next purchase rather than buried in the shop.
+ */
+function paintMilestoneCountdown() {
+  const wrap = document.getElementById('side-milestone');
+  if (!wrap) return;
+
+  const target = nextMilestoneTarget();
+  const nameEl = document.getElementById('side-ms-name');
+  const gapEl = document.getElementById('side-ms-gap');
+  const fillEl = document.getElementById('side-ms-fill');
+
+  if (!target) {
+    if (nameEl) nameEl.textContent = 'all milestones reached';
+    if (gapEl) gapEl.textContent = '×64';
+    if (fillEl) fillEl.style.width = '100%';
     return;
   }
 
-  const cost = unitCost(unit);
-  dom.nextName().textContent = unit.name;
-  dom.nextCost().textContent = `${fmt(cost)} DATA`;
-  dom.nextProgress().style.width = `${Math.min(100, (state.data / cost) * 100)}%`;
+  if (nameEl) nameEl.textContent = `${target.unit.name} → Lv ${target.nextAt}`;
+  if (gapEl) gapEl.textContent = `${target.gap} level${target.gap === 1 ? '' : 's'} to ×2`;
+  if (fillEl) {
+    // Progress through the current milestone band, so the bar visibly fills.
+    const prev = MILESTONE_LEVELS[MILESTONE_LEVELS.indexOf(target.nextAt) - 1] || 0;
+    const span = target.nextAt - prev;
+    const done = target.level - prev;
+    fillEl.style.width = `${Math.max(0, Math.min(100, (done / span) * 100))}%`;
+  }
 }
 
 function renderMilestones() {
