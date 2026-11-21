@@ -172,12 +172,21 @@ function tickAutoTaps(dt) {
  * Heat is handled in heat.js, which calls this.
  */
 function applyPassive(dt) {
+  // Say it before charging for it: the rate shown is the rate paid.
   const rate = dataPerSecond();
-  if (rate <= 0) return 0;
-  const gain = rate * dt;
-  state.data += gain;
-  state.totalData += gain;
-  state.lifetimeData += gain;
+  const gain = rate > 0 ? rate * dt : 0;
+  if (gain > 0) {
+    state.data += gain;
+    state.totalData += gain;
+    state.lifetimeData += gain;
+  }
+
+  // Sleep Cycle's rate grows by itself, once per simulated second. Doing it
+  // after the payment means the number on screen is the number that was
+  // actually earned, and the growth is linear in time so it cannot run away.
+  const ramp = rampPerSecond();
+  if (ramp > 0) state.ramp = (state.ramp || 0) + ramp * dt;
+
   return gain;
 }
 

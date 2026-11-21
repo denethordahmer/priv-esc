@@ -275,6 +275,7 @@ function sectionEffectText(unit) {
     case 'heat': return `+${fmt(eff)} heat cap`;
     case 'click': return `+${fmt(eff)} per tap`;
     case 'offline': return `+${(eff * 100).toFixed(0)}% offline`;
+    case 'ramp': return `+${eff.toFixed(1)} /s each second`;
     case 'auto': return `+${(eff).toFixed(1)} taps/s`;
     case 'prestige': return `+${(eff * 100).toFixed(0)}% ascension`;
     default: return `+${fmt(eff)} /s`;

@@ -53,8 +53,8 @@ const SECTIONS = [
     desc: 'Raises the heat ceiling.', perLevel: 12, base: 300,
   },
   {
-    id: 'sleep', name: 'SLEEP CYCLE', role: 'offline',
-    desc: 'Better earnings while away.', perLevel: 0.02, base: 5000,
+    id: 'sleep', name: 'SLEEP CYCLE', role: 'ramp',
+    desc: 'Its Data/s grows every second.', perLevel: 0.1, base: 5000,
   },
   {
     id: 'reflex', name: 'REFLEX LOOP', role: 'auto',

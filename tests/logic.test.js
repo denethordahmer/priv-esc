@@ -82,7 +82,7 @@ globalThis.__exports = {
   escapeChargesEarned,
   buyUnit, unitCost, unitMaxed, ownedOf, freshUpgrades, tickAutoTaps,
   sellUnit, sellValue, buyMany, SELL_REFUND,
-  clickPower, idlePerSecond, autoClicksPerSecond, globalMultiplier, dataPerSecond,
+  clickPower, idlePerSecond, autoClicksPerSecond, globalMultiplier, dataPerSecond, rampPerSecond,
   costMultiplier, heatCapacity, dataPerSecond, clickYield,
   prestigeCurrencyEarned, ascend, canAscend, pendingExabytes,
   buyPrestigeTier, nextPrestigeCost, applyClick, applyPassive, saveNow, serialise, loadState,
@@ -248,6 +248,77 @@ check('reflex loop taps without spending anything', () => {
   assert(c.state.data > afterOneSecond, 'the second second produced nothing');
   assert(c.state.upgrades.reflex === 10, 'the loop changed its own level');
   return `${c.autoClicksPerSecond().toFixed(1)} taps/s, +${c.fmt(afterOneSecond)} Data/s`;
+});
+
+check('sleep cycle adds 0.1 per level to the idle rate every second', () => {
+  // The owner asked for a section where one level adds 0.1 to the idle rate
+  // every second, so the number climbs while they watch. Ten levels must add
+  // a whole Data per second, each second.
+  c.state.upgrades = c.freshUpgrades();
+  c.state.ramp = 0;
+  c.state.data = 0;
+  c.state.escapes = 0;
+  c.state.ascensions = 0;
+  c.state.cloud = {};
+  c.state.grid = {};
+  c.state.gatesPaid = [];
+  c.state.lifetimeData = 1e6;
+
+  c.state.upgrades.sleep = 1;
+  assert(Math.abs(c.rampPerSecond() - 0.1) < 1e-9, `one level gave ${c.rampPerSecond()}`);
+
+  // One second at a time, the rate must step by 0.1 each second.
+  const rates = [];
+  for (let s = 0; s < 5; s += 1) {
+    c.applyPassive(1);
+    rates.push(Number(c.dataPerSecond().toFixed(4)));
+  }
+  const steps = rates.map((r, i) => Number((r - (i === 0 ? 0 : rates[i - 1])).toFixed(4)));
+  steps.forEach((step) => {
+    assert(Math.abs(step - 0.1) < 1e-6, `a second added ${step}, expected 0.1`);
+  });
+
+  // Ten levels is one whole Data per second, per second. Compare the ramp
+  // itself, because total rate also carries the lifetime multiplier.
+  c.state.upgrades = c.freshUpgrades();
+  c.state.ramp = 0;
+  c.state.upgrades.sleep = 10;
+  assert(Math.abs(c.rampPerSecond() - 1) < 1e-9, `ten levels gave ${c.rampPerSecond()}`);
+  c.applyPassive(1);
+  c.applyPassive(1);
+  assert(Math.abs(c.state.ramp - 2) < 1e-6, `after two seconds the ramp was ${c.state.ramp}`);
+
+  return `1 lv: ${rates.map((r) => r.toFixed(1)).join(' → ')}`;
+});
+
+check('the sleep ramp is linear in time, so it cannot run away', () => {
+  // Doubling the seconds doubles the ramp. That is the whole safety argument:
+  // growth depends on time alone, never on how much has already been earned.
+  const at = (seconds) => {
+    c.state.upgrades = c.freshUpgrades();
+    c.state.ramp = 0;
+    c.state.data = 0;
+    c.state.gatesPaid = [];
+    c.state.lifetimeData = 1e6;
+    c.state.upgrades.sleep = 5;
+    for (let s = 0; s < seconds; s += 1) c.applyPassive(1);
+    return c.state.ramp;
+  };
+
+  const ten = at(10);
+  const twenty = at(20);
+  assert(Math.abs(twenty / ten - 2) < 0.01,
+    `ten seconds gave ${ten}, twenty gave ${twenty} — that is not linear`);
+
+  // Earning more Data must not change the step size either.
+  c.state.upgrades = c.freshUpgrades();
+  c.state.ramp = 0;
+  c.state.upgrades.sleep = 5;
+  const stepSmall = c.rampPerSecond();
+  c.state.lifetimeData = 1e30;
+  const stepHuge = c.rampPerSecond();
+  assert(stepSmall === stepHuge, 'the ramp step changed with lifetime Data');
+  return `linear: ${ten.toFixed(1)} at 10s, ${twenty.toFixed(1)} at 20s`;
 });
 
 check('the one feedback term stays inside its safe band', () => {

@@ -53,6 +53,7 @@ function freshState() {
     exabytes: 0,
     gridNodes: 0,
     escapes: 0,            // second-layer currency, kept across every reset
+    ramp: 0,               // Sleep Cycle's self-growing Data/s, kept across resets
 
     // progress
     upgrades: freshUpgrades(),
@@ -261,9 +262,23 @@ function autoClicksPerSecond() {
 }
 
 function idlePerSecond() {
-  // Daemon Threads is the passive line. Sleep Cycle multiplies what the tab
-  // earns while closed, not the live rate, so it stays out of this sum.
+  // Daemon Threads is the bought passive line. Sleep Cycle is added on top
+  // as state.ramp, because its output grows by itself every second rather
+  // than being a fixed amount per level.
   return sectionOutput(sectionById('daemon'));
+}
+
+/**
+ * Data per second that Sleep Cycle adds to the idle rate each second.
+ *
+ * One level adds 0.1 per second, so the number on screen climbs while the
+ * player watches even if they never buy anything else. The growth is linear
+ * in time, which is why it cannot run away: it never multiplies by earnings.
+ */
+function rampPerSecond() {
+  const level = ownedOf('sleep');
+  if (level === 0) return 0;
+  return level * sectionById('sleep').eff * milestoneMultiplier(level);
 }
 
 function dataPerSecondPerClick() {
@@ -271,7 +286,8 @@ function dataPerSecondPerClick() {
 }
 
 function dataPerSecond() {
-  return idlePerSecond() * globalMultiplier();
+  // Bought passive output plus the accumulated Sleep Cycle ramp.
+  return (idlePerSecond() + (state.ramp || 0)) * globalMultiplier();
 }
 
 /**

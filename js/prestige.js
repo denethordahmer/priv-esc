@@ -30,7 +30,8 @@ function ascend(path) {
   state.lastPrestigeCurrency = earned;
   state.ascensions += 1;
 
-  // Reset the run.
+  // Reset the run. Sleep Cycle's ramp is permanent once earned: it is a
+  // reward for time spent watching the number climb, so a reset keeps it.
   state.data = 0;
   state.totalData = 0;
   state.upgrades = freshUpgrades();
@@ -127,7 +128,8 @@ function escape() {
   state.escapes = (state.escapes || 0) + earned;
   state.lastEscapeCharges = earned;
 
-  // Wipe the run and both first-layer paths.
+  // Wipe the run and both first-layer paths. The Sleep Cycle ramp survives:
+  // it is the one thing that pays back time rather than purchases.
   state.data = 0;
   state.totalData = 0;
   state.upgrades = freshUpgrades();
