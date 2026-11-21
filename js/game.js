@@ -198,11 +198,14 @@ function initInput() {
     doClick();
   });
 
-  // Save when the tab is hidden or closed.
+  // Save when the tab is hidden or closed. saveNow() is a no-op once the
+  // player has wiped the save, so these cannot resurrect it.
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) saveNow(false);
   });
   window.addEventListener('beforeunload', () => saveNow(false));
+  // iOS and some webviews fire pagehide instead of beforeunload.
+  window.addEventListener('pagehide', () => saveNow(false));
 }
 
 /* --------------------------------- loop --------------------------------- */

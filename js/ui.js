@@ -672,6 +672,16 @@ function initSettings() {
     );
     if (!ok) return;
     wipeSave();
+    // Confirm the key is really gone before reloading. If storage refused the
+    // removal, say so instead of silently coming back to the same save.
+    let stillThere = false;
+    try {
+      stillThere = localStorage.getItem(SAVE_KEY) !== null;
+    } catch { /* storage blocked entirely, which is also a wipe */ }
+    if (stillThere) {
+      setSaveStatus('Could not clear storage. Progress is unchanged.');
+      return;
+    }
     location.reload();
   });
 

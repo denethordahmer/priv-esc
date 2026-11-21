@@ -2,7 +2,11 @@
    save.js — LocalStorage persistence, auto-save, offline progress
    ========================================================================= */
 
-const SAVE_KEY = 'priv-esc:save:v4';
+// Key name carries the format version. Bumping it retires old saves: the
+// prestige rewrite in v5 changed what a "record" and a "ramp" mean, so a v4
+// save cannot be interpreted correctly.
+const SAVE_KEY = 'priv-esc:save:v5';
+const RETIRED_SAVE_KEYS = ['priv-esc:save:v4', 'priv-esc:save:v3', 'priv-esc:save:v2', 'priv-esc:save:v1'];
 
 /* ----------------------------- serialise -------------------------------- */
 
@@ -169,7 +173,15 @@ function num(v, fallback) {
 
 let saveStatusTimer = null;
 
+// Set by wipeSave(). Once the player has asked to delete their save, nothing
+// may write it back: the reload that follows the wipe fires beforeunload and
+// pagehide, and both used to save the still-live state straight back to disk.
+// That is why "Delete everything" only looked like it worked until you
+// re-entered the game.
+let saveDisabled = false;
+
 function saveNow(showStatus = false) {
+  if (saveDisabled) return false;
   try {
     localStorage.setItem(SAVE_KEY, serialise());
     state.lastSaveAt = Date.now();
@@ -191,8 +203,14 @@ function setSaveStatus(msg) {
 }
 
 function wipeSave() {
+  // Stop every later write first. Removing the key is not enough on its own:
+  // the reload fires beforeunload/pagehide, which called saveNow() and put the
+  // whole save back.
+  saveDisabled = true;
   try {
     localStorage.removeItem(SAVE_KEY);
+    // Also clear keys left by earlier formats, so a wipe really is a wipe.
+    RETIRED_SAVE_KEYS.forEach((k) => localStorage.removeItem(k));
   } catch { /* storage may be blocked; the reload still resets in-memory state */ }
 }
 

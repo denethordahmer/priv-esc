@@ -88,6 +88,7 @@ globalThis.__exports = {
   costMultiplier, heatCapacity, dataPerSecond, clickYield,
   prestigeCurrencyEarned, ascend, canAscend, pendingExabytes, ascensionGate, PRESTIGE_UNIT,
   buyPrestigeTier, nextPrestigeCost, applyClick, applyPassive, saveNow, serialise, loadState,
+  wipeSave, SAVE_KEY, localStorage,
   fmt, fmtRate, fmtTime, fmtClock, fmtMult, fmtPct,
 };`;
 
@@ -873,6 +874,36 @@ check('progression curve lands in the target bands', () => {
   assert(marks['1M'] !== null, 'never reached 1M');
   assert(marks['1B'] !== null, 'never reached 1B');
   return `10k ${Math.round(marks['10k'])}s · 1M ${Math.round(marks['1M'])}s · 1B ${Math.round(marks['1B'] / 3600)}h · ${buys} buys`;
+});
+
+/* --------------------------- save wiping -------------------------------- */
+
+check('wiping the save survives the reload save', () => {
+  // Regression: wipeSave() removed the key, then location.reload() fired
+  // beforeunload -> saveNow(), which wrote the live state back. The player saw
+  // the title screen, then found all their progress when they entered again.
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 987654;          // distinctive, so a resurrected save is obvious
+  c.saveNow(false);
+  const key = c.SAVE_KEY;
+  assert(c.localStorage.getItem(key) !== null, 'nothing was saved to test with');
+
+  c.wipeSave();
+  // Every event the browser fires on the way out.
+  c.saveNow(false);   // beforeunload
+  c.saveNow(false);   // pagehide
+  c.saveNow(false);   // visibilitychange -> hidden
+
+  assert(c.localStorage.getItem(key) === null, 'the save came back after the wipe');
+  return 'still gone after beforeunload';
+});
+
+check('wiping leaves no progress behind after a reload', () => {
+  // Load the emptied storage the way boot() does: there must be nothing to
+  // restore, so the player genuinely starts fresh.
+  const raw = c.localStorage.getItem(c.SAVE_KEY);
+  assert(raw === null, 'a save was restored after wiping');
+  return 'fresh start';
 });
 
 /* -------------------------------- report --------------------------------- */
