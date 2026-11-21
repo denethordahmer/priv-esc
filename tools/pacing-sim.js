@@ -5,13 +5,20 @@
 
    Loads the real game files in a sandbox, then plays the game the way a
    player would: buys the best-value section, buys every affordable prestige
-   tier, ascends once the payout has doubled, escapes whenever one is owed,
-   and taps for the first fifteen minutes of each run.
+   tier, ascends whenever the doubling gate allows it, escapes whenever one is
+   owed, and taps for the first fifteen minutes of each run.
 
    It prints the wall-clock time to each of the ten gates. Use it before and
    after any balance change. The old test suite measured a single session up
    to 1e9 and never spent prestige currency, which is exactly how a build that
    finishes in one evening still passed its tests.
+
+   Two traps this file has fallen into before, both fixed:
+   - It drove income with dataPerSecond(), which skips applyPassive() and so
+     never grew Sleep Cycle's ramp. It reported days for a game that took
+     hours. Always tick through applyPassive().
+   - It ascended at a fixed 1e9*10 instead of asking canAscend(), so it
+     ignored the doubling gate and under-ascended.
    ========================================================================= */
 
 const fs = require('fs');
@@ -65,7 +72,7 @@ function load() {
   for (const f of FILES) src += fs.readFileSync(path.join(ROOT, f), 'utf8') + '\n';
   src += `globalThis.__g = {
     state, UNIT_REGISTRY, buyUnit, unitCost, dataPerSecond, clickYield,
-    globalMultiplier, PRESTIGE_BASE, canAscend, ascend, escape, canEscape,
+    globalMultiplier, PRESTIGE_BASE, canAscend, ascend, escape, canEscape, applyPassive,
     checkMilestones, heatCapacity, freshUpgrades, GATES, PRESTIGE,
     buyPrestigeTier, nextPrestigeCost, bestValueUnit, DATA_MULT_EXP,
   };`;
@@ -142,7 +149,11 @@ function run(hours) {
   while (t < hours * 3600) {
     const dt = dtFor(t);
     const taps = 4 * Math.max(0, 1 - (t - runStart) / 900);
-    const gain = g.dataPerSecond() * dt + taps * dt * g.clickYield();
+    // applyPassive is the real tick: it pays idle output AND grows Sleep
+    // Cycle's ramp. Calling dataPerSecond() directly skipped the ramp, which
+    // is why this simulator used to report days for a game finished in hours.
+    g.applyPassive(dt);
+    const gain = taps * dt * g.clickYield();
     st.data += gain;
     st.totalData += gain;
     st.lifetimeData += gain;
@@ -155,7 +166,9 @@ function run(hours) {
       if (!hit[at] && st.lifetimeData >= at) hit[at] = t;
     }
 
-    if (st.totalData >= g.PRESTIGE_BASE * 10 && g.canAscend()) {
+    // The gate doubles with each run, so the simulator must ask canAscend()
+    // rather than compare against a fixed number.
+    if (g.canAscend()) {
       const keepLife = st.lifetimeData;
       const keepGates = st.gatesPaid.slice();
       g.ascend(st.ascensions % 2 ? 'grid' : 'cloud');

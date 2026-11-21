@@ -16,6 +16,7 @@ function serialise() {
     gn: state.gridNodes,
     es: state.escapes,
     rp: state.ramp || 0,
+    pr: state.prestigeRecord || 0,
     eu: state.escapeUnlocked === true,
     ll: state.lifetimeLevels || 0,
     gp: state.gatesPaid || [],
@@ -79,7 +80,12 @@ function loadState(raw) {
   state.exabytes = num(d.ex, 0);
   state.gridNodes = num(d.gn, 0);
   state.escapes = Math.max(0, Math.floor(num(d.es, 0)));
+  // The Sleep Cycle ramp is run state: it must match the levels that built it
+  // and it is cleared by every prestige reset.
   state.ramp = Math.max(0, num(d.rp, 0));
+  // Best run Data since the last escape. The next ascension must beat twice
+  // this, and it caps what the payout counts as new ground.
+  state.prestigeRecord = Math.max(0, num(d.pr, 0));
   state.escapeUnlocked = d.eu === true || state.escapes > 0;
   state.lifetimeLevels = Math.max(0, Math.floor(num(d.ll, 0)));
   state.heat = num(d.h, 0);

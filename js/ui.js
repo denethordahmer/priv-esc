@@ -409,6 +409,7 @@ function quoteLabel(quote) {
 function renderPrestige() {
   const earned = pendingExabytes();
   const armed = endingArmed();
+  const gate = ascensionGate();
 
   // The Escape panel is painted below the ascension copy, so both readouts
   // are rebuilt together on every render. A reset changes both numbers.
@@ -417,8 +418,8 @@ function renderPrestige() {
   document.getElementById('prestige-earned-line').textContent = armed
     ? `Lifetime Data ${fmt(state.lifetimeData)} / ${fmt(ENDING_AT)} — the tether is within reach.`
     : canAscend()
-      ? `Ascending now awards ${earned} prestige currency.`
-      : `Reach ${fmt(PRESTIGE_BASE)} Data to ascend. ${fmt(state.totalData)} / ${fmt(PRESTIGE_BASE)}`;
+      ? `Ascending now awards ${earned} prestige currency. The run after this needs ${fmt(gate * 2)}.`
+      : `Reach ${fmt(gate)} Data this run to ascend. ${fmt(state.totalData)} / ${fmt(gate)}`;
 
   document.getElementById('cur-cloud').textContent = `${fmt(state.exabytes)} EB`;
   document.getElementById('cur-grid').textContent = `${fmt(state.gridNodes)} GN`;

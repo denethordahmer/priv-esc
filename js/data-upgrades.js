@@ -116,7 +116,7 @@ const GATE_REWARD = 4;
  * earned faster than the last. Keep it below 0.70 and above 0.66.
  */
 const DATA_MULT_FLOOR = 1e6;
-const DATA_MULT_EXP = 0.67;
+const DATA_MULT_EXP = 0.54;
 
 /*
  * How much of one second of passive income a manual click is worth, once the
@@ -128,14 +128,34 @@ const CLICK_RATE_SHARE = 0.1;
 /* Meta progression ------------------------------------------------------- */
 
 // Rule 2: diminishing prestige reward.
-// The gate and the payout share one base so they can never drift apart:
-// at the gate an ascension awards 10 currency, then 10 * sqrt(n).
+//
+// A run pays a fixed number of points per DOUBLING of Data above the last
+// record. The old rule paid in proportion to the run's total Data, so a long
+// run paid millions and every prestige upgrade was bought at once.
+//
+// `record` is the best run Data since the last escape. The first ascension at
+// the gate pays PRESTIGE_UNIT; each further doubling of that record pays the
+// same again. A whole game (1e9 to 1e36) is ~90 doublings, so it pays ~900
+// points in total rather than an unbounded pile.
 const PRESTIGE_BASE = 1e9;   // Data needed for the first ascension
-const PRESTIGE_UNIT = 10;    // currency awarded at exactly the gate
+const PRESTIGE_UNIT = 10;    // points paid per doubling of new ground
 
-function prestigeCurrencyEarned(totalData) {
-  if (totalData < PRESTIGE_BASE) return 0;
-  return Math.floor(PRESTIGE_UNIT * Math.sqrt(totalData / PRESTIGE_BASE));
+/** What a run reaching `data` is worth in total, before any record is counted. */
+function prestigeValue(data) {
+  if (data < PRESTIGE_BASE) return 0;
+  return PRESTIGE_UNIT * (1 + Math.log2(data / PRESTIGE_BASE));
+}
+
+/**
+ * Points an ascension pays now: the value of this run minus the value of the
+ * best run already paid for. Every doubling of the record pays exactly
+ * PRESTIGE_UNIT, so a whole game (1e9 to 1e36, ~90 doublings) pays ~900.
+ *
+ * Round rather than floor: exact doublings land on 9.999999 due to floating
+ * point and must pay the full unit, not one less.
+ */
+function prestigeCurrencyEarned(totalData, record) {
+  return Math.max(0, Math.round(prestigeValue(totalData) - prestigeValue(record || 0)));
 }
 
 /*
@@ -181,7 +201,10 @@ function escapeChargesEarned(lifetimeData) {
 const ASCENSION_BONUS_PER_RUN = 0.005;  // +0.5% Data per ascension
 const ASCENSION_BONUS_RUNS = 100;       // capped, so the term tops out at +50%
 const BANDWIDTH_MAX_LEVELS = 10;        // ×0.10 each, capped at +100%
-const FABRICATION_MAX_LEVELS = 25;      // ×0.02 each, capped at 50% off
+// 25 levels cost 4.17M points, which was 99.7% of the whole Grid path and
+// unreachable now that a full game pays ~900 points. Twelve levels cost
+// 13.9K, so the tree is a long-term goal rather than a single purchase.
+const FABRICATION_MAX_LEVELS = 12;      // ×0.02 each, capped at 24% off
 const UNSPENT_BONUS_PER_UNIT = 0.001;   // +0.1% Data per unspent currency unit
 const UNSPENT_BONUS_CAP_UNITS = 1000;   // capped, so the term tops out at +100%
 

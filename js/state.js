@@ -3,7 +3,7 @@
    Everything else reads and writes this object. No DOM code lives here.
    ========================================================================= */
 
-const SAVE_VERSION = 4;
+const SAVE_VERSION = 5;
 
 /*
  * The unit registry: one entry per section.
@@ -69,6 +69,7 @@ function freshState() {
     cloud: {},             // id -> tier bought (1..3)
     grid: {},
     lastPrestigeCurrency: 0,
+    prestigeRecord: 0,     // best run Data since the last escape; sets the gate
 
     // meta
     phase: 0,

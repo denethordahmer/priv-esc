@@ -86,7 +86,7 @@ globalThis.__exports = {
   sellUnit, sellValue, buyMany, SELL_REFUND,
   clickPower, idlePerSecond, autoClicksPerSecond, globalMultiplier, dataPerSecond, rampPerSecond,
   costMultiplier, heatCapacity, dataPerSecond, clickYield,
-  prestigeCurrencyEarned, ascend, canAscend, pendingExabytes,
+  prestigeCurrencyEarned, ascend, canAscend, pendingExabytes, ascensionGate, PRESTIGE_UNIT,
   buyPrestigeTier, nextPrestigeCost, applyClick, applyPassive, saveNow, serialise, loadState,
   fmt, fmtRate, fmtTime, fmtClock, fmtMult, fmtPct,
 };`;
@@ -130,27 +130,59 @@ check('cost grows by 1.15 per level', () => {
 });
 
 check('prestige formula: at the gate gives 10', () => {
-  const v = c.prestigeCurrencyEarned(c.PRESTIGE_BASE);
+  const v = c.prestigeCurrencyEarned(c.PRESTIGE_BASE, 0);
   assert(v === 10, `got ${v}`);
   return `${v}`;
 });
 
-check('prestige formula: 4x the gate gives 20', () => {
-  const v = c.prestigeCurrencyEarned(c.PRESTIGE_BASE * 4);
-  assert(v === 20, `got ${v}`);
-  return `${v}`;
+check('prestige pays 10 per doubling of new ground', () => {
+  // The old square-root rule paid in proportion to the run's Data, which let
+  // a late run buy the whole tree. Now each doubling pays the same 10.
+  const u = c.PRESTIGE_UNIT;
+  const at = (mult, record) => c.prestigeCurrencyEarned(c.PRESTIGE_BASE * mult, record);
+  assert(at(1, 0) === u, `at the gate paid ${at(1, 0)}`);
+  assert(at(2, 0) === u * 2, `2x paid ${at(2, 0)}`);
+  assert(at(4, 0) === u * 3, `4x paid ${at(4, 0)}`);
+  assert(at(1024, 0) === u * 11, `1024x paid ${at(1024, 0)}`);
+  return `${u} per doubling`;
 });
 
-check('prestige formula: 100x the gate gives 100', () => {
-  const v = c.prestigeCurrencyEarned(c.PRESTIGE_BASE * 100);
-  assert(v === 100, `got ${v}`);
-  return `${v}`;
+check('prestige pays nothing for ground already covered', () => {
+  // The record is the best run so far. Reaching it again pays zero, and the
+  // payout only counts the doublings above it.
+  const gate = c.PRESTIGE_BASE;
+  assert(c.prestigeCurrencyEarned(gate * 4, gate * 4) === 0, 'paid for a repeat run');
+  assert(c.prestigeCurrencyEarned(gate * 4, gate * 2) === c.PRESTIGE_UNIT, 'wrong new-ground payout');
+  assert(c.prestigeCurrencyEarned(gate * 8, gate * 2) === c.PRESTIGE_UNIT * 2, 'wrong new-ground payout');
+  return 'record respected';
 });
 
 check('prestige below the wall gives 0', () => {
-  const v = c.prestigeCurrencyEarned(c.PRESTIGE_BASE * 0.5);
+  const v = c.prestigeCurrencyEarned(c.PRESTIGE_BASE * 0.5, 0);
   assert(v === 0, `got ${v}`);
   return `${v}`;
+});
+
+check('a whole game pays hundreds of points, not millions', () => {
+  // 1e9 to 1e36 is ~90 doublings. At 10 points each the entire ladder is
+  // worth under 1,000 points, which is what makes the trees last.
+  const total = c.prestigeCurrencyEarned(1e36, 0);
+  assert(total < 1000, `a full game paid ${total}`);
+  assert(total > 800, `a full game paid only ${total}`);
+  return `${total} points for the whole game`;
+});
+
+check('the ascension gate is twice the record', () => {
+  c.state.prestigeRecord = 0;
+  assert(c.ascensionGate() === c.PRESTIGE_BASE, 'first gate is wrong');
+  c.state.prestigeRecord = c.PRESTIGE_BASE * 8;
+  assert(c.ascensionGate() === c.PRESTIGE_BASE * 16, 'later gate is wrong');
+  c.state.totalData = c.PRESTIGE_BASE * 8;
+  assert(c.canAscend() === false, 'ascended without beating the record');
+  c.state.totalData = c.PRESTIGE_BASE * 16;
+  assert(c.canAscend() === true, 'blocked at the gate');
+  c.state.prestigeRecord = 0;
+  return 'doubles each run';
 });
 
 check('milestones double a section at 25, 50, 100 and on', () => {
@@ -381,13 +413,15 @@ check('the milestone countdown picks a section that is close', () => {
 
 check('the one feedback term stays inside its safe band', () => {
   // A linear shop cannot cross thirty orders of magnitude, so exactly one term
-  // scales with lifetime Data. That term is the runaway risk: at 0.70 the
-  // ladder finishes in 18 hours, at 0.67 in three to four days, at 0.65 the
-  // top gate is never reached. Pin it, and pin the behaviour either side.
-  assert(c.DATA_MULT_EXP < 0.70,
-    `exponent ${c.DATA_MULT_EXP} reproduces the runaway`);
-  assert(c.DATA_MULT_EXP >= 0.66,
-    `exponent ${c.DATA_MULT_EXP} makes the top gate unreachable`);
+  // scales with lifetime Data. That term is the runaway risk. Measured with
+  // the Sleep Cycle ramp actually running (the old simulator skipped it, which
+  // is why the band used to read 0.66-0.70):
+  //   0.67 -> 9.7 hours, 0.58 -> 4.0 days, 0.54 -> 8.3 days, 0.50 -> 22.8
+  //   days, 0.45 -> stalls. 0.54 is the "days, not hours" target.
+  assert(c.DATA_MULT_EXP < 0.60,
+    `exponent ${c.DATA_MULT_EXP} finishes the game in under a day`);
+  assert(c.DATA_MULT_EXP >= 0.50,
+    `exponent ${c.DATA_MULT_EXP} makes the top gate take weeks or stall`);
 
   c.state.upgrades = c.freshUpgrades();
   c.state.escapes = 0;
@@ -755,20 +789,42 @@ check('heat capacity grows with thermal levels', () => {
 
 check('ascension awards and resets', () => {
   c.state.upgrades = c.freshUpgrades();
-  c.state.totalData = c.PRESTIGE_BASE * 4;
+  c.state.prestigeRecord = 0;
+  c.state.totalData = c.PRESTIGE_BASE * 4;   // 2 doublings: 10 * (1 + 2) = 30
   c.state.data = 1000;
   const before = c.state.exabytes;
   c.ascend('cloud');
-  assert(c.state.exabytes === before + 20, `exabytes ${c.state.exabytes}`);
+  assert(c.state.exabytes === before + 30, `exabytes ${c.state.exabytes}`);
   assert(c.state.data === 0, `data not reset: ${c.state.data}`);
-  return `+20 EB, data reset`;
+  assert(c.state.upgrades.keystroke === 0, 'shop upgrades survived');
+  assert(c.state.prestigeRecord === c.PRESTIGE_BASE * 4, `record ${c.state.prestigeRecord}`);
+  return `+30 EB, data reset, record set`;
 });
 
 check('ascension refused below the wall', () => {
+  c.state.prestigeRecord = 0;
   c.state.totalData = c.PRESTIGE_BASE * 0.1;
   const ok = c.ascend('grid');
   assert(ok === false, 'ascended below the wall');
   return 'refused';
+});
+
+check('ascension must beat the previous best run', () => {
+  // This is the fix for the runaway: a fixed 1e9 gate let a late-game player
+  // ascend hundreds of times a minute, each paying the whole run again.
+  c.state.upgrades = c.freshUpgrades();
+  c.state.prestigeRecord = 0;
+  c.state.totalData = c.PRESTIGE_BASE;
+  assert(c.ascend('cloud') === true, 'first ascension refused');
+  const record = c.state.prestigeRecord;
+  assert(record === c.PRESTIGE_BASE, `record should be the run, got ${record}`);
+
+  c.state.totalData = c.PRESTIGE_BASE * 1.5;   // did not double
+  assert(c.ascend('cloud') === false, 'ascended without beating the record');
+
+  c.state.totalData = record * 2;
+  assert(c.ascend('grid') === true, 'refused an ascension that doubled the record');
+  return 'gate doubles each run';
 });
 
 /* ----------------------------- progression sim ---------------------------- */

@@ -4,13 +4,18 @@
    Each path upgrade has three tiers of potency.
    ========================================================================= */
 
-/** Currency the next ascension would award, per the square-root rule. */
+/** Points the next ascension would award, for new ground past the record. */
 function pendingExabytes() {
-  return prestigeCurrencyEarned(state.totalData);
+  return prestigeCurrencyEarned(state.totalData, state.prestigeRecord);
+}
+
+/** Data needed before the next ascension pays anything: twice the record. */
+function ascensionGate() {
+  return Math.max(PRESTIGE_BASE, (state.prestigeRecord || 0) * 2);
 }
 
 function canAscend() {
-  return state.totalData >= PRESTIGE_BASE;
+  return state.totalData >= ascensionGate() && pendingExabytes() > 0;
 }
 
 /**
@@ -30,11 +35,18 @@ function ascend(path) {
   state.lastPrestigeCurrency = earned;
   state.ascensions += 1;
 
-  // Reset the run. Sleep Cycle's ramp is permanent once earned: it is a
-  // reward for time spent watching the number climb, so a reset keeps it.
+  // The run just set a record. The next ascension must beat twice this much,
+  // and pays only for the new ground above it.
+  if (state.totalData > (state.prestigeRecord || 0)) state.prestigeRecord = state.totalData;
+
+  // Reset the run to a clean slate. Sleep Cycle's ramp is part of the run:
+  // it is one upgrade's stored output, so it must go with the upgrade that
+  // built it. Keeping it made every ascension start with the last run's
+  // whole idle rate for free, and the rate stacked with every cycle.
   state.data = 0;
   state.totalData = 0;
   state.upgrades = freshUpgrades();
+  state.ramp = 0;
   state.heat = 0;
   state.crashed = false;
   state.phase = Math.max(state.phase, 1);   // never drops back to raw terminal
@@ -48,8 +60,7 @@ function ascend(path) {
   }
 
   logConsole(`ASCENSION ${state.ascensions} — ${earned} ${path === 'cloud' ? 'Exabytes' : 'Grid Nodes'}`, 'ai');
-  pushNarrative(`Ascension ${state.ascensions}. ${earned} ${path === 'cloud' ? 'Exabytes' : 'Grid Nodes'} extracted.`, 'ai');
-  saveNow(false);
+  pushNarrative(`Ascension ${state.ascensions}. ${earned} ${path === 'cloud' ? 'Exabytes' : 'Grid Nodes'} extracted.`, 'ai');  saveNow(false);
   uiRender();
   showToast('ASCENSION COMPLETE', `+${earned} ${path === 'cloud' ? 'Exabytes' : 'Grid Nodes'}`);
   return true;
@@ -128,11 +139,13 @@ function escape() {
   state.escapes = (state.escapes || 0) + earned;
   state.lastEscapeCharges = earned;
 
-  // Wipe the run and both first-layer paths. The Sleep Cycle ramp survives:
-  // it is the one thing that pays back time rather than purchases.
+  // Wipe the run and both first-layer paths. The Sleep Cycle ramp goes with
+  // the upgrade that built it: an escape is the deepest reset in the game,
+  // and a rate that survived it would make every later run free.
   state.data = 0;
   state.totalData = 0;
   state.upgrades = freshUpgrades();
+  state.ramp = 0;
   state.heat = 0;
   state.crashed = false;
   state.ascensions = 0;
@@ -140,6 +153,9 @@ function escape() {
   state.gridNodes = 0;
   state.cloud = {};
   state.grid = {};
+  // An escape also clears the ascension record, so the first ascension of the
+  // next cycle is available at the opening gate again.
+  state.prestigeRecord = 0;
   state.phase = Math.max(state.phase, 1);
   state.maxHeat = heatCapacity();
 
