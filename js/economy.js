@@ -147,29 +147,22 @@ function nextTargetUnit() {
   return target || cheapestUnit();
 }
 
-/* --------------------------- build pipeline ----------------------------- */
-
-let pipelineTimer = 0;
+/* --------------------------- automatic taps ----------------------------- */
 
 /**
- * Build Pipeline buys the best-value section on a timer.
- * Returns true if it bought something this tick.
- *
- * The interval shortens with levels, so the section is worth buying: 40
- * levels takes it from one purchase per 5 seconds down to one per 0.5 s.
+ * Reflex Loop taps on a timer, adding Data without spending anything.
+ * Returns the Data gained this tick.
  */
-function tickAutoCompiler(dt) {
-  const level = ownedOf('pipeline');
-  if (level === 0) return false;
-
-  const every = Math.max(0.5, 5 - level * 0.1);
-  pipelineTimer += dt;
-  if (pipelineTimer < every) return false;
-  pipelineTimer = 0;
-
-  const unit = bestValueUnit();
-  if (!unit) return false;
-  return buyUnit(unit);
+function tickAutoTaps(dt) {
+  const perSecond = autoClicksPerSecond();
+  if (perSecond <= 0) return 0;
+  const taps = perSecond * dt;
+  const gain = taps * clickPower() * globalMultiplier();
+  if (gain <= 0) return 0;
+  state.data += gain;
+  state.totalData += gain;
+  state.lifetimeData += gain;
+  return gain;
 }
 
 /* ----------------------------- passive tick ----------------------------- */

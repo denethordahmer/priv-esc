@@ -56,6 +56,9 @@ const LEGACY_KEYS = {
   self: 'exploit',
   compress: 'compress',
   cool: 'thermal',
+  // Build Pipeline was removed. Its levels convert to the replacement section
+  // rather than disappearing from a save that paid for them.
+  pipeline: 'reflex',
 };
 
 function loadState(raw) {

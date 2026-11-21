@@ -238,11 +238,13 @@ function simulateStep(dt) {
 
   applyPassive(dt);
 
-  // Auto clicks generate a trickle of heat. There is no auto-click section in
-  // the eight-section shop, so this stays at zero and heat is tapped-driven.
-  tickHeat(dt, autoClicksPerSecond() * dt);
+  // Reflex Loop taps for the player. It adds Data and never spends any,
+  // which is why it is safe to leave running.
+  tickAutoTaps(dt);
 
-  tickAutoCompiler(dt);
+  // Automatic taps from Reflex Loop add a trickle of heat, the same as a
+  // manual tap would. Nothing in the game spends Data on its own.
+  tickHeat(dt, autoClicksPerSecond() * dt);
 
   // Milestones are checked on a cheaper cadence than every 100ms.
   checkMilestones();

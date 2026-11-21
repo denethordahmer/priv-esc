@@ -57,8 +57,8 @@ const SECTIONS = [
     desc: 'Better earnings while away.', perLevel: 0.02, base: 5000,
   },
   {
-    id: 'pipeline', name: 'BUILD PIPELINE', role: 'auto',
-    desc: 'Buys sections while you idle.', perLevel: 0.02, base: 20000,
+    id: 'reflex', name: 'REFLEX LOOP', role: 'auto',
+    desc: 'Taps for you each second.', perLevel: 0.1, base: 2500,
   },
   {
     id: 'exodus', name: 'EXODUS PROTOCOL', role: 'prestige',

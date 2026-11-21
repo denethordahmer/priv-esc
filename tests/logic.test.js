@@ -80,9 +80,9 @@ globalThis.__exports = {
   fmtCompact, musicVolume, DEFAULT_VOLUME, shuffleIndexes,
   totalLevelsBought, escape, canEscape, pendingEscapes,
   escapeChargesEarned,
-  buyUnit, unitCost, unitMaxed, ownedOf, freshUpgrades,
+  buyUnit, unitCost, unitMaxed, ownedOf, freshUpgrades, tickAutoTaps,
   sellUnit, sellValue, buyMany, SELL_REFUND,
-  clickPower, idlePerSecond, autoClicksPerSecond, globalMultiplier,
+  clickPower, idlePerSecond, autoClicksPerSecond, globalMultiplier, dataPerSecond,
   costMultiplier, heatCapacity, dataPerSecond, clickYield,
   prestigeCurrencyEarned, ascend, canAscend, pendingExabytes,
   buyPrestigeTier, nextPrestigeCost, applyClick, applyPassive, saveNow, serialise, loadState,
@@ -194,6 +194,62 @@ check('cost outruns the milestone bonus, so the shop never runs away', () => {
   return `cost +${Math.log10(costGrowth).toFixed(1)} orders, output +${Math.log10(outGrowth).toFixed(1)}`;
 });
 
+check('nothing spends Data unless the player buys it', () => {
+  // A section that bought upgrades on a timer shipped once and spent the
+  // player's Data without being asked. This guards against it coming back:
+  // run every section at a high level for a simulated second and check that
+  // no purchase happened and Data only went up.
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 1e9;
+  c.state.totalData = 1e9;
+  c.state.escapes = 0;
+  c.state.ascensions = 0;
+  c.state.cloud = {};
+  c.state.grid = {};
+  c.state.gatesPaid = [];
+  c.UNIT_REGISTRY.forEach((u) => { c.state.upgrades[u.key] = 40; });
+
+  const before = c.state.data;
+  const levels = () => c.totalLevelsBought();
+  const levelsBefore = levels();
+
+  // Run a full second of the game's passive loop, twice.
+  if (typeof c.tickAutoTaps === 'function') c.tickAutoTaps(1);
+  c.applyPassive(1);
+  if (typeof c.tickAutoTaps === 'function') c.tickAutoTaps(1);
+
+  assert(levels() === levelsBefore, 'a section bought upgrades on its own');
+  assert(c.state.data >= before, `Data went down without a purchase: ${before} -> ${c.state.data}`);
+  return 'no purchases, Data only rises';
+});
+
+check('reflex loop taps without spending anything', () => {
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 0;
+  c.state.escapes = 0;
+  c.state.ascensions = 0;
+  c.state.cloud = {};
+  c.state.grid = {};
+  c.state.gatesPaid = [];
+  c.state.upgrades.reflex = 10;
+
+  // Ten levels at 0.1 taps each is one tap a second, worth one click.
+  const expected = c.autoClicksPerSecond() * c.clickPower() * c.globalMultiplier();
+  assert(Math.abs(expected - c.clickPower() * c.globalMultiplier()) < 1e-9,
+    `ten levels gave ${c.autoClicksPerSecond()} taps/s`);
+
+  c.tickAutoTaps(1);
+  const afterOneSecond = c.state.data;
+  assert(afterOneSecond > 0, 'the loop produced nothing');
+  assert(Math.abs(afterOneSecond - expected) < 1e-9,
+    `produced ${afterOneSecond}, expected ${expected}`);
+
+  c.tickAutoTaps(1);
+  assert(c.state.data > afterOneSecond, 'the second second produced nothing');
+  assert(c.state.upgrades.reflex === 10, 'the loop changed its own level');
+  return `${c.autoClicksPerSecond().toFixed(1)} taps/s, +${c.fmt(afterOneSecond)} Data/s`;
+});
+
 check('the one feedback term stays inside its safe band', () => {
   // A linear shop cannot cross thirty orders of magnitude, so exactly one term
   // scales with lifetime Data. That term is the runaway risk: at 0.70 the
@@ -301,23 +357,23 @@ check('a click stays worth something once idle income takes over', () => {
   c.state.cloud = {};
   c.state.grid = {};
 
-  // Idle-only build: no click levels, no Build Pipeline yet.
+  // Idle-only build: no click levels, no Reflex Loop yet.
   c.state.upgrades.daemon = 400;
   const passive = c.dataPerSecond();
   const locked = c.clickYield();
 
   assert(passive > 0, 'idle build produced no passive income');
   assert(locked === c.clickPower() * c.globalMultiplier(),
-    'the click share applied before Build Pipeline was owned');
+    'the click share applied before Reflex Loop was owned');
 
-  // Buy the first Build Pipeline level: the share unlocks.
-  c.state.upgrades.pipeline = 1;
+  // Buy the first Reflex Loop level: the share unlocks.
+  c.state.upgrades.reflex = 1;
   const unlocked = c.clickYield();
   const share = (unlocked - locked) / passive;
 
   assert(Math.abs(share - c.CLICK_RATE_SHARE) < 0.01,
     `click share was ${share.toFixed(3)} of a second, expected ${c.CLICK_RATE_SHARE}`);
-  return `${c.fmt(locked)} locked -> ${c.fmt(unlocked)} with the pipeline`;
+  return `${c.fmt(locked)} locked -> ${c.fmt(unlocked)} with the reflex loop`;
 });
 
 check('compact numbers stay short at every gate', () => {

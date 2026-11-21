@@ -253,9 +253,11 @@ function clickPower() {
 }
 
 function autoClicksPerSecond() {
-  // Build Pipeline buys sections on a timer; it does not click. Auto-click
-  // speed comes from Sleep Cycle's automation tiers instead.
-  return 0;
+  // Reflex Loop performs automatic taps. Each level is worth a tenth of a
+  // tap per second, so ten levels is one tap a second.
+  const reflex = ownedOf('reflex');
+  if (reflex === 0) return 0;
+  return reflex * sectionById('reflex').eff * milestoneMultiplier(reflex);
 }
 
 function idlePerSecond() {
@@ -281,6 +283,6 @@ function dataPerSecond() {
  */
 function clickYield() {
   const manual = clickPower() * globalMultiplier();
-  if (ownedOf('pipeline') === 0) return manual;
+  if (ownedOf('reflex') === 0) return manual;
   return manual + dataPerSecond() * CLICK_RATE_SHARE;
 }

@@ -245,7 +245,7 @@ const SECTION_TAB = {
   keystroke: 'hardware',
   daemon: 'hardware',
   thermal: 'hardware',
-  pipeline: 'hardware',
+  reflex: 'hardware',
   exploit: 'software',
   compress: 'software',
   sleep: 'software',
@@ -275,7 +275,7 @@ function sectionEffectText(unit) {
     case 'heat': return `+${fmt(eff)} heat cap`;
     case 'click': return `+${fmt(eff)} per tap`;
     case 'offline': return `+${(eff * 100).toFixed(0)}% offline`;
-    case 'auto': return `−${(eff * 5).toFixed(1)}s per buy`;
+    case 'auto': return `+${(eff).toFixed(1)} taps/s`;
     case 'prestige': return `+${(eff * 100).toFixed(0)}% ascension`;
     default: return `+${fmt(eff)} /s`;
   }
