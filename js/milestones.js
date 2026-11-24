@@ -5,6 +5,35 @@
 let lastMilestoneCheck = 0;
 
 /**
+ * The phase the player is in right now.
+ *
+ * This is DERIVED from the CURRENT RUN and never latched. A gate marked
+ * `life` still fires its dialogue off lifetime Data so an ascension cannot
+ * un-earn it, but the SKIN is a reading of the run in progress: prestige puts
+ * you back at the terminal and you climb the ladder again. Reading the ladder
+ * every tick is what stops the screen freezing at whatever phase the last
+ * prestige left it on.
+ */
+function currentPhase() {
+  let phase = 1;
+  MILESTONES.forEach((m) => {
+    if (state.totalData >= m.at && m.phase > phase) phase = m.phase;
+  });
+  return phase;
+}
+
+/**
+ * Repaint the skin if the derived phase has moved.
+ * Cheap enough to call every tick: it is a compare against state.phase.
+ */
+function syncPhase() {
+  const phase = currentPhase();
+  if (phase === state.phase) return;
+  state.phase = phase;
+  applyPhase(phase);
+}
+
+/**
  * Check whether any milestone has been crossed.
  * Each fires exactly once and is recorded in state.milestones.
  */
@@ -37,12 +66,15 @@ function checkMilestones() {
     if (m.unlock === 'ending-watch' || m.unlock === 'ending-ready') syncEndingControls();
     if (m.heatGlow) document.getElementById('heat-panel')?.classList.add('is-hot');
 
-    applyPhase(state.phase);
-
     // A phase change is the biggest thing that happens in this game, so it
-    // gets a moment of its own rather than a silent repaint.
+    // gets a moment of its own rather than a silent repaint. syncPhase() has
+    // already repainted the skin by the time this runs.
     if (state.phase > previousPhase) announcePhase(state.phase);
   });
+
+  // Milestones that have all been spent still leave the skin to track the
+  // current run, so the phase is reconciled on every check.
+  syncPhase();
 }
 
 /**

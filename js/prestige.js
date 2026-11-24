@@ -49,7 +49,10 @@ function ascend(path) {
   state.ramp = 0;
   state.heat = 0;
   state.crashed = false;
-  state.phase = Math.max(state.phase, 1);   // never drops back to raw terminal
+  // The phase is a reading of the CURRENT run, so prestige drops it back to
+  // the terminal look. Milestone ids are remembered separately, which is what
+  // stops gate rewards being re-earned on the next run.
+  state.phase = 1;
   state.maxHeat = heatCapacity();
 
   // Deep Web Cache grants starting Data on the next run.
@@ -156,7 +159,8 @@ function escape() {
   // An escape also clears the ascension record, so the first ascension of the
   // next cycle is available at the opening gate again.
   state.prestigeRecord = 0;
-  state.phase = Math.max(state.phase, 1);
+  // The skin follows the current cycle again from the bottom of the ladder.
+  state.phase = 1;
   state.maxHeat = heatCapacity();
 
   logConsole(`ESCAPE — ${earned} Charge${earned === 1 ? '' : 's'} taken`, 'ai');

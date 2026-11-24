@@ -88,7 +88,7 @@ globalThis.__exports = {
   costMultiplier, heatCapacity, dataPerSecond, clickYield,
   prestigeCurrencyEarned, ascend, canAscend, pendingExabytes, ascensionGate, PRESTIGE_UNIT,
   buyPrestigeTier, nextPrestigeCost, applyClick, applyPassive, saveNow, serialise, loadState,
-  wipeSave, SAVE_KEY, localStorage,
+  wipeSave, SAVE_KEY, localStorage, currentPhase, syncPhase,
   fmt, fmtRate, fmtTime, fmtClock, fmtMult, fmtPct,
 };`;
 
@@ -285,10 +285,10 @@ check('reflex loop taps without spending anything', () => {
   return `${c.autoClicksPerSecond().toFixed(1)} taps/s, +${c.fmt(afterOneSecond)} Data/s`;
 });
 
-check('sleep cycle adds 0.1 per level to the idle rate every second', () => {
-  // The owner asked for a section where one level adds 0.1 to the idle rate
-  // every second, so the number climbs while they watch. Ten levels must add
-  // a whole Data per second, each second.
+check('sleep cycle adds its per-level rate to the idle rate every second', () => {
+  // The owner asked for a section whose Data/s climbs while they watch. The
+  // step is SLEEP_RATE per level per second; it was 0.1, which was fast enough
+  // to reach phase 5 in about an hour, so it is now 0.001.
   c.state.upgrades = c.freshUpgrades();
   c.state.ramp = 0;
   c.state.data = 0;
@@ -299,31 +299,34 @@ check('sleep cycle adds 0.1 per level to the idle rate every second', () => {
   c.state.gatesPaid = [];
   c.state.lifetimeData = 1e6;
 
-  c.state.upgrades.sleep = 1;
-  assert(Math.abs(c.rampPerSecond() - 0.1) < 1e-9, `one level gave ${c.rampPerSecond()}`);
+  const RATE = c.SECTIONS.find((s) => s.id === 'sleep').perLevel;
 
-  // One second at a time, the rate must step by 0.1 each second.
+  c.state.upgrades.sleep = 1;
+  assert(Math.abs(c.rampPerSecond() - RATE) < 1e-12, `one level gave ${c.rampPerSecond()}`);
+
+  // The ramp must grow by RATE per second, second after second.
   const rates = [];
   for (let s = 0; s < 5; s += 1) {
     c.applyPassive(1);
-    rates.push(Number(c.dataPerSecond().toFixed(4)));
+    rates.push(c.state.ramp);
   }
-  const steps = rates.map((r, i) => Number((r - (i === 0 ? 0 : rates[i - 1])).toFixed(4)));
-  steps.forEach((step) => {
-    assert(Math.abs(step - 0.1) < 1e-6, `a second added ${step}, expected 0.1`);
+  rates.forEach((r, i) => {
+    assert(Math.abs(r - RATE * (i + 1)) < 1e-9,
+      `after ${i + 1}s the ramp was ${r}, expected ${RATE * (i + 1)}`);
   });
 
-  // Ten levels is one whole Data per second, per second. Compare the ramp
-  // itself, because total rate also carries the lifetime multiplier.
+  // Ten levels is ten times the rate.
   c.state.upgrades = c.freshUpgrades();
   c.state.ramp = 0;
   c.state.upgrades.sleep = 10;
-  assert(Math.abs(c.rampPerSecond() - 1) < 1e-9, `ten levels gave ${c.rampPerSecond()}`);
+  assert(Math.abs(c.rampPerSecond() - RATE * 10) < 1e-12,
+    `ten levels gave ${c.rampPerSecond()}`);
   c.applyPassive(1);
   c.applyPassive(1);
-  assert(Math.abs(c.state.ramp - 2) < 1e-6, `after two seconds the ramp was ${c.state.ramp}`);
+  assert(Math.abs(c.state.ramp - RATE * 20) < 1e-9,
+    `after two seconds the ramp was ${c.state.ramp}`);
 
-  return `1 lv: ${rates.map((r) => r.toFixed(1)).join(' → ')}`;
+  return `${RATE} per level-second`;
 });
 
 check('the sleep ramp is linear in time, so it cannot run away', () => {
@@ -904,6 +907,46 @@ check('wiping leaves no progress behind after a reload', () => {
   const raw = c.localStorage.getItem(c.SAVE_KEY);
   assert(raw === null, 'a save was restored after wiping');
   return 'fresh start';
+});
+
+check('the phase follows the current run, not the best ever reached', () => {
+  // Regression: the skin used to be latched. applyPhase() was only called when
+  // a BRAND NEW milestone fired, so once every gate had been spent nothing
+  // repainted the screen and the game froze at whatever phase it was on. The
+  // owner saw the terminal stay at the phase they prestiged at.
+  c.state.milestones = c.MILESTONES.map((m) => m.id);   // every gate already spent
+  c.state.gatesPaid = c.MILESTONES.map((m) => m.id);
+  c.state.lifetimeData = 1e36;                          // huge lifetime, as late game
+  c.state.escapes = 0;
+  c.state.cloud = {};
+  c.state.grid = {};
+
+  c.state.totalData = 0;
+  assert(c.currentPhase() === 1, `fresh run shows phase ${c.currentPhase()}`);
+
+  c.state.totalData = 1e12;
+  assert(c.currentPhase() === 4, `at 1e12 shows phase ${c.currentPhase()}`);
+
+  c.state.totalData = 1e21;
+  assert(c.currentPhase() === 7, `at 1e21 shows phase ${c.currentPhase()}`);
+
+  // And it must still reach the top, which is what makes the ladder finishable.
+  c.state.totalData = 1e36;
+  assert(c.currentPhase() === 10, `at 1e36 shows phase ${c.currentPhase()}`);
+  return 'run-scoped, reaches phase 10';
+});
+
+check('prestige returns the screen to the terminal', () => {
+  c.state.upgrades = c.freshUpgrades();
+  c.state.milestones = [];
+  c.state.gatesPaid = [];
+  c.state.prestigeRecord = 0;
+  c.state.totalData = 1e15;
+  c.state.phase = 5;
+  c.ascend('cloud');
+  assert(c.state.totalData === 0, 'run not reset');
+  assert(c.currentPhase() === 1, `after ascend the phase is ${c.currentPhase()}`);
+  return 'back to phase 1';
 });
 
 /* -------------------------------- report --------------------------------- */

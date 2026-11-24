@@ -54,7 +54,10 @@ const SECTIONS = [
   },
   {
     id: 'sleep', name: 'SLEEP CYCLE', role: 'ramp',
-    desc: 'Its Data/s grows every second.', perLevel: 0.1, base: 5000,
+    // The ramp is the one source that grows while the player does nothing, so
+    // it is what makes a run accelerate. A tenth of the old rate keeps the
+    // "watch the number climb" feel without flying through the ladder.
+    desc: 'Its Data/s grows every second.', perLevel: 0.001, base: 5000,
   },
   {
     id: 'reflex', name: 'REFLEX LOOP', role: 'auto',
