@@ -84,7 +84,7 @@ globalThis.__exports = {
   ownedOf, freshUpgrades, tickAutoTaps,
   nextTargetUnit, nextMilestoneTarget, bestValueUnit, unitValueScore,
   sellUnit, sellValue, buyMany, SELL_REFUND,
-  clickPower, idlePerSecond, autoClicksPerSecond, globalMultiplier, dataPerSecond, rampPerSecond,
+  clickPower, REFLEX_TAP_SHARE, idlePerSecond, autoClicksPerSecond, globalMultiplier, dataPerSecond, rampPerSecond,
   costMultiplier, heatCapacity, dataPerSecond, clickYield,
   prestigeCurrencyEarned, ascend, canAscend, pendingExabytes, ascensionGate, PRESTIGE_UNIT,
   buyPrestigeTier, nextPrestigeCost, applyClick, applyPassive, saveNow, serialise, loadState,
@@ -277,9 +277,9 @@ check('reflex loop taps without spending anything', () => {
   c.state.gatesPaid = [];
   c.state.upgrades.reflex = 10;
 
-  // Ten levels at 0.1 taps each is one tap a second, worth one click.
-  const expected = c.autoClicksPerSecond() * c.clickPower() * c.globalMultiplier();
-  assert(Math.abs(expected - c.clickPower() * c.globalMultiplier()) < 1e-9,
+  // Ten levels at 0.1 taps each is one tap a second, worth REFLEX_TAP_SHARE of a click.
+  const expected = c.autoClicksPerSecond() * c.clickPower() * c.globalMultiplier() * c.REFLEX_TAP_SHARE;
+  assert(Math.abs(expected - c.clickPower() * c.globalMultiplier() * c.REFLEX_TAP_SHARE) < 1e-9,
     `ten levels gave ${c.autoClicksPerSecond()} taps/s`);
 
   c.tickAutoTaps(1);
@@ -431,7 +431,7 @@ check('the one feedback term stays inside its safe band', () => {
   //
   // The band moved when the prestige rows started working and escapes stopped
   // doubling. Measured through tools/pacing-sim.js with additive escapes and
-  // gate x2.5: 0.80 -> 4.8 days, 0.778 -> 9.4 days (the ten-day target),
+  // gate x2.5: 0.80 -> 4.8 days, 0.774 -> 10.3 days (the ten-day target),
   // 0.76 -> 19.7 days, 0.74 -> 33.9 days, 0.72 -> stalls.
   //
   // This asserts the range the pacing tool proved, not a guessed band.

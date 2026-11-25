@@ -72,7 +72,7 @@ function load() {
   for (const f of FILES) src += fs.readFileSync(path.join(ROOT, f), 'utf8') + '\n';
   src += `globalThis.__g = {
     state, UNIT_REGISTRY, buyUnit, unitCost, dataPerSecond, clickYield,
-    globalMultiplier, PRESTIGE_BASE, canAscend, ascend, escape, canEscape, applyPassive,
+    globalMultiplier, PRESTIGE_BASE, canAscend, ascend, escape, canEscape, applyPassive, tickAutoTaps,
     checkMilestones, heatCapacity, freshUpgrades, GATES, PRESTIGE,
     buyPrestigeTier, nextPrestigeCost, bestValueUnit, DATA_MULT_EXP,
   };`;
@@ -152,7 +152,7 @@ function run(hours) {
     // applyPassive is the real tick: it pays idle output AND grows Sleep
     // Cycle's ramp. Calling dataPerSecond() directly skipped the ramp, which
     // is why this simulator used to report days for a game finished in hours.
-    g.applyPassive(dt);
+    g.applyPassive(dt); g.tickAutoTaps(dt);
     const gain = taps * dt * g.clickYield();
     st.data += gain;
     st.totalData += gain;

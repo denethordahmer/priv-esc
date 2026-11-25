@@ -135,7 +135,7 @@ const GATE_REWARD = 2.5;
  *   0.80  finished in 4.8 days
  *   0.79  finished in 6.0 days
  *   0.78  finished in 8.1 days
- *   0.778 finished in 9.4 days   (chosen: the ~10 day target)
+ *   0.774 finished in 10.3 days  (chosen: the ~10 day target, with Reflex taps counted)
  *   0.775 finished in 11.0 days
  *   0.773 finished in 12.4 days
  *   0.76  finished in 19.7 days
@@ -147,7 +147,7 @@ const GATE_REWARD = 2.5;
  * game is held back by the widened milestones instead.
  */
 const DATA_MULT_FLOOR = 1e6;
-const DATA_MULT_EXP = 0.778;
+const DATA_MULT_EXP = 0.774;
 
 /*
  * How much of one second of passive income a manual click is worth, once the
@@ -306,6 +306,10 @@ const GATES = [
 const MILESTONES = GATES;
 
 // Heat mechanic constants.
+// A Reflex Loop tap pays this share of a manual tap. At full value it passed
+// every tap-scaled upgrade and finished the game in about 3 days.
+const REFLEX_TAP_SHARE = 0.02;
+
 const HEAT = {
   perClick: 0.6,
   perAutoClick: 0.05,

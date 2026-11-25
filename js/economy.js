@@ -241,7 +241,7 @@ function tickAutoTaps(dt) {
   const perSecond = autoClicksPerSecond();
   if (perSecond <= 0) return 0;
   const taps = perSecond * dt;
-  const gain = taps * clickPower() * globalMultiplier();
+  const gain = taps * clickPower() * globalMultiplier() * REFLEX_TAP_SHARE;
   if (gain <= 0) return 0;
   state.data += gain;
   state.totalData += gain;
