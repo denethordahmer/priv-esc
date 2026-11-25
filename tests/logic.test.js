@@ -76,7 +76,7 @@ globalThis.__exports = {
   GATE_REWARD, milestoneMultiplier, milestoneTiers, sectionOutput,
   DATA_MULT_EXP, DATA_MULT_FLOOR, ESCAPE_EFFICIENCY,
   MILESTONES, GATES, PRESTIGE, HEAT, PRESTIGE_BASE, PRESTIGE_UNIT,
-  ENDING_AT, ESCAPE_AT, ESCAPE_MULT, ESCAPE_UNIT, ESCAPE_STEP, CLICK_RATE_SHARE,
+  ENDING_AT, ESCAPE_AT, ESCAPE_BONUS, ESCAPE_UNIT, ESCAPE_STEP, CLICK_RATE_SHARE,
   fmtCompact, musicVolume, DEFAULT_VOLUME, shuffleIndexes,
   totalLevelsBought, escape, canEscape, pendingEscapes,
   escapeChargesEarned,
@@ -90,6 +90,8 @@ globalThis.__exports = {
   buyPrestigeTier, nextPrestigeCost, applyClick, applyPassive, saveNow, serialise, loadState,
   wipeSave, SAVE_KEY, localStorage, currentPhase, syncPhase,
   fmt, fmtRate, fmtTime, fmtClock, fmtMult, fmtPct,
+  sectionCap, COMPRESS_MAX_LEVELS, EXODUS_MAX_LEVELS, exodusMultiplier,
+  sentienceTier, ambientIntervalMs, glitchFromPhase,
 };`;
 
   vm.runInContext(combined, ctx, { filename: 'priv-esc-bundle.js' });
@@ -186,30 +188,32 @@ check('the ascension gate is twice the record', () => {
   return 'doubles each run';
 });
 
-check('milestones double a section at 25, 50, 100 and on', () => {
+check('milestones double a section at each threshold', () => {
   c.state.upgrades = c.freshUpgrades();
   c.state.escapes = 0;
   c.state.ascensions = 0;
 
   const daemon = c.UNIT_REGISTRY.find((u) => u.key === 'daemon');
+  // Read the first threshold from the constant so retuning does not break
+  // this test: below and at the threshold, output is linear in levels AND
+  // doubles at the threshold.
+  const first = c.MILESTONE_LEVELS[0];
+  c.state.upgrades.daemon = first - 1;
+  const before = c.sectionOutput(daemon);
+  c.state.upgrades.daemon = first;
+  const at = c.sectionOutput(daemon);
 
-  // Just below and just at the first threshold: output is linear in levels
-  // AND doubles at the threshold, so 24 -> 25 is 2x times the 25/24 step.
-  c.state.upgrades.daemon = 24;
-  const at24 = c.sectionOutput(daemon);
-  c.state.upgrades.daemon = 25;
-  const at25 = c.sectionOutput(daemon);
-
-  assert(at24 > 0, '24 levels produced nothing');
-  const ratio = at25 / at24;
-  const expected = 2 * (25 / 24);
+  assert(before > 0, `${first - 1} levels produced nothing`);
+  const ratio = at / before;
+  const expected = 2 * (first / (first - 1));
   assert(Math.abs(ratio - expected) < 0.05,
     `expected ${expected.toFixed(2)}x at the threshold, got ${ratio.toFixed(2)}x`);
 
   // Six thresholds in total, so a maxed milestone ladder is x64.
   assert(c.MILESTONE_LEVELS.length === 6, 'expected six thresholds');
-  assert(c.milestoneMultiplier(800) === 64, `got ${c.milestoneMultiplier(800)}`);
-  return `${at24.toFixed(1)} -> ${at25.toFixed(1)} at 25 levels`;
+  const last = c.MILESTONE_LEVELS[c.MILESTONE_LEVELS.length - 1];
+  assert(c.milestoneMultiplier(last) === 64, `got ${c.milestoneMultiplier(last)}`);
+  return `${before.toFixed(1)} -> ${at.toFixed(1)} at ${first} levels`;
 });
 
 check('cost outruns the milestone bonus, so the shop never runs away', () => {
@@ -218,14 +222,19 @@ check('cost outruns the milestone bonus, so the shop never runs away', () => {
   // grows without limit while output does not.
   const costAt = (n) => Math.pow(1.15, n);
   const outAt = (n) => c.milestoneMultiplier(n) * n;
-  const costGrowth = costAt(200) / costAt(25);
-  const outGrowth = outAt(200) / outAt(25);
+  const first = c.MILESTONE_LEVELS[0];
+  const last = c.MILESTONE_LEVELS[c.MILESTONE_LEVELS.length - 1];
+  const costGrowth = costAt(last) / costAt(first);
+  const outGrowth = outAt(last) / outAt(first);
 
   assert(costGrowth > outGrowth,
     `cost grew ${costGrowth.toExponential(1)}x but output grew ${outGrowth.toExponential(1)}x`);
   // Past the last milestone, output is purely linear: no compounding at all.
-  const lateGrowth = outAt(2000) / outAt(800);
-  assert(lateGrowth === 2000 / 800, 'output should be linear after the last milestone');
+  const lateFrom = last * 2.5;
+  const lateTo = last * 10;
+  const lateGrowth = outAt(lateTo) / outAt(lateFrom);
+  assert(Math.abs(lateGrowth - lateTo / lateFrom) < 1e-9,
+    'output should be linear after the last milestone');
   return `cost +${Math.log10(costGrowth).toFixed(1)} orders, output +${Math.log10(outGrowth).toFixed(1)}`;
 });
 
@@ -400,32 +409,36 @@ check('the milestone countdown picks a section that is close', () => {
   c.state.ramp = 0;
 
   // A section one level short of a doubling should win over untouched ones.
-  c.state.upgrades.daemon = 24;
+  const first = c.MILESTONE_LEVELS[0];
+  c.state.upgrades.daemon = first - 1;
   const target = c.nextMilestoneTarget();
   assert(target, 'no milestone target');
   assert(target.unit.key === 'daemon', `picked ${target.unit.key} instead of daemon`);
-  assert(target.nextAt === 25, `next milestone was ${target.nextAt}`);
+  assert(target.nextAt === first, `next milestone was ${target.nextAt}`);
   assert(target.gap === 1, `gap was ${target.gap}`);
 
   // With nothing started, it should still offer something rather than nothing.
   c.state.upgrades = c.freshUpgrades();
   const fresh = c.nextMilestoneTarget();
   assert(fresh, 'no target on a fresh save');
-  assert(fresh.nextAt === 25, `fresh target was level ${fresh.nextAt}`);
-  return `daemon 24 -> 25, then ${fresh.unit.key} -> ${fresh.nextAt}`;
+  assert(fresh.nextAt === first, `fresh target was level ${fresh.nextAt}`);
+  return `daemon ${first - 1} -> ${first}, then ${fresh.unit.key} -> ${fresh.nextAt}`;
 });
 
 check('the one feedback term stays inside its safe band', () => {
   // A linear shop cannot cross thirty orders of magnitude, so exactly one term
-  // scales with lifetime Data. That term is the runaway risk. Measured with
-  // the Sleep Cycle ramp actually running (the old simulator skipped it, which
-  // is why the band used to read 0.66-0.70):
-  //   0.67 -> 9.7 hours, 0.58 -> 4.0 days, 0.54 -> 8.3 days, 0.50 -> 22.8
-  //   days, 0.45 -> stalls. 0.54 is the "days, not hours" target.
-  assert(c.DATA_MULT_EXP < 0.60,
-    `exponent ${c.DATA_MULT_EXP} finishes the game in under a day`);
-  assert(c.DATA_MULT_EXP >= 0.50,
-    `exponent ${c.DATA_MULT_EXP} makes the top gate take weeks or stall`);
+  // scales with lifetime Data. That term is the runaway risk.
+  //
+  // The band moved when the prestige rows started working and escapes stopped
+  // doubling. Measured through tools/pacing-sim.js with additive escapes and
+  // gate x2.5: 0.80 -> 4.8 days, 0.778 -> 9.4 days (the ten-day target),
+  // 0.76 -> 19.7 days, 0.74 -> 33.9 days, 0.72 -> stalls.
+  //
+  // This asserts the range the pacing tool proved, not a guessed band.
+  assert(c.DATA_MULT_EXP >= 0.72,
+    `exponent ${c.DATA_MULT_EXP} stalls the ladder (measured: 0.72 never finishes)`);
+  assert(c.DATA_MULT_EXP <= 0.80,
+    `exponent ${c.DATA_MULT_EXP} finishes the game in under five days`);
 
   c.state.upgrades = c.freshUpgrades();
   c.state.escapes = 0;
@@ -497,7 +510,7 @@ check('ten gates, one per phase, strictly rising', () => {
 check('the ladder names a new magnitude at each step', () => {
   // Gates 1-8 are one named number each. 9 and 10 widen so the top asks for
   // real time rather than minutes.
-  const expected = [1e4, 1e6, 1e9, 1e12, 1e15, 1e18, 1e21, 1e24, 1e30, 1e36];
+  const expected = [1e4, 1e6, 1e9, 1e12, 1e15, 1e19, 1e23, 1e28, 1e34, 1e40];
   const actual = c.GATES.map((g) => g.at);
   expected.forEach((v, i) => {
     assert(actual[i] === v, `gate ${i + 1} is ${actual[i]}, expected ${v}`);
@@ -563,8 +576,9 @@ check('the escape preview names the next run multiplier', () => {
   const owed = c.escapeChargesEarned(1e18);
   const expected = 1 + Math.floor(3 / c.ESCAPE_STEP);
   assert(owed === expected, `1e18 should be worth ${expected} charges, got ${owed}`);
-  const mult = Math.pow(c.ESCAPE_MULT, owed);
-  assert(mult === Math.pow(2, expected), `${expected} charges should be x${Math.pow(2, expected)}, got x${mult}`);
+  const mult = 1 + owed * c.ESCAPE_BONUS;
+  assert(Math.abs(mult - (1 + expected * c.ESCAPE_BONUS)) < 1e-9,
+    `${expected} charges should be x${1 + expected * c.ESCAPE_BONUS}, got x${mult}`);
   return `${owed} charges, next run x${mult}`;
 });
 
@@ -675,11 +689,14 @@ check('thermal levels raise the heat ceiling one at a time', () => {
   const cool = c.UNIT_REGISTRY.find((u) => u.key === 'thermal');
   assert(cool && cool.cap === null, 'thermal should not be capped');
   const before = c.heatCapacity();
-  c.state.upgrades.thermal = 30;
+  // Buy past the first milestone so the doubling is included, whatever the
+  // threshold is set to.
+  const levels = c.MILESTONE_LEVELS[0];
+  c.state.upgrades.thermal = levels;
   const after = c.heatCapacity();
   assert(after > before, `ceiling did not move: ${before} -> ${after}`);
-  // 30 levels at 12 each, doubled once at the 25-level milestone.
-  assert(after - before > 12 * 30, `ceiling only moved to ${after}`);
+  // Each level adds its own amount, doubled once at the milestone.
+  assert(after - before > 12 * levels, `ceiling only moved to ${after}`);
   return `${before} -> ${after} heat cap`;
 });
 
@@ -927,12 +944,12 @@ check('the phase follows the current run, not the best ever reached', () => {
   c.state.totalData = 1e12;
   assert(c.currentPhase() === 4, `at 1e12 shows phase ${c.currentPhase()}`);
 
-  c.state.totalData = 1e21;
-  assert(c.currentPhase() === 7, `at 1e21 shows phase ${c.currentPhase()}`);
+  c.state.totalData = 1e23;
+  assert(c.currentPhase() === 7, `at 1e23 shows phase ${c.currentPhase()}`);
 
   // And it must still reach the top, which is what makes the ladder finishable.
-  c.state.totalData = 1e36;
-  assert(c.currentPhase() === 10, `at 1e36 shows phase ${c.currentPhase()}`);
+  c.state.totalData = 1e40;
+  assert(c.currentPhase() === 10, `at 1e40 shows phase ${c.currentPhase()}`);
   return 'run-scoped, reaches phase 10';
 });
 
@@ -949,8 +966,187 @@ check('prestige returns the screen to the terminal', () => {
   return 'back to phase 1';
 });
 
-/* -------------------------------- report --------------------------------- */
+/* ------------------------- shop honesty regressions ---------------------- */
 
+check('Compression stops selling levels that change nothing', () => {
+  const comp = c.UNITS_BY_KEY.get('compress');
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 1e30;
+
+  c.state.upgrades.compress = c.COMPRESS_MAX_LEVELS - 1;
+  assert(!c.unitMaxed(comp), 'the last useful level should still be buyable');
+  assert(c.buyUnit(comp), 'failed to buy the last useful level');
+
+  assert(c.unitMaxed(comp), 'compression should read maxed at its cap');
+  const price = c.unitCost(comp);
+  assert(c.buyUnit(comp) === false, 'a level past the cap was sold');
+  assert(c.buyMany(comp, 10) === 0, 'bulk buy sold levels past the cap');
+  assert(c.ownedOf('compress') === c.COMPRESS_MAX_LEVELS, 'level moved past the cap');
+  assert(c.unitCost(comp) === price, 'price moved after a refused purchase');
+  return `capped at Lv ${c.COMPRESS_MAX_LEVELS}, purchases refused`;
+});
+
+check('a hand-edited save past the cap cannot buy more', () => {
+  const comp = c.UNITS_BY_KEY.get('compress');
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 1e40;
+  c.state.upgrades.compress = 200;
+  assert(c.unitMaxed(comp), 'a save past the cap should read maxed');
+  assert(c.buyUnit(comp) === false, 'sold another level to an over-cap save');
+  return 'over-cap saves are clamped';
+});
+
+check('Buy Best never spends on a dead Compression level', () => {
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 1e20;
+  c.state.upgrades.compress = c.COMPRESS_MAX_LEVELS;
+  let deadPicks = 0;
+  for (let i = 0; i < 120; i += 1) {
+    const unit = c.bestValueUnit();
+    if (!unit) break;
+    if (unit.key === 'compress') deadPicks += 1;
+    if (!c.buyUnit(unit)) break;
+  }
+  assert(deadPicks === 0, `Buy Best picked dead Compression ${deadPicks} times`);
+  return 'no wasted Data in 120 picks';
+});
+
+check('Exodus Protocol raises the prestige payout', () => {
+  c.state.upgrades = c.freshUpgrades();
+  const base = c.prestigeCurrencyEarned(1e36, 0);
+  assert(base > 0, 'a 1e36 run should pay something');
+
+  c.state.upgrades.exodus = 1;
+  const one = c.prestigeCurrencyEarned(1e36, 0);
+  assert(one > base, `one level paid ${one}, base ${base}`);
+
+  c.state.upgrades.exodus = c.EXODUS_MAX_LEVELS;
+  const capped = c.prestigeCurrencyEarned(1e36, 0);
+  c.state.upgrades.exodus = 500;
+  const over = c.prestigeCurrencyEarned(1e36, 0);
+  assert(over === capped, `past the cap paid ${over}, capped ${capped}`);
+  return `${base} -> ${capped} at the cap`;
+});
+
+check('Exodus Protocol has a cap the shop respects', () => {
+  const exodus = c.UNITS_BY_KEY.get('exodus');
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 1e40;
+  c.state.upgrades.exodus = c.EXODUS_MAX_LEVELS;
+  assert(c.unitMaxed(exodus), 'exodus should read maxed at its cap');
+  assert(c.buyUnit(exodus) === false, 'sold an exodus level past the cap');
+  return `capped at Lv ${c.EXODUS_MAX_LEVELS}`;
+});
+
+check('every section has a real effect on something', () => {
+  const probes = {
+    keystroke: () => c.clickPower(),
+    daemon: () => c.idlePerSecond(),
+    exploit: () => c.globalMultiplier(),
+    compress: () => c.costMultiplier(),
+    thermal: () => c.heatCapacity(),
+    sleep: () => c.rampPerSecond(),
+    reflex: () => c.autoClicksPerSecond(),
+    exodus: () => c.prestigeCurrencyEarned(1e36, 0),
+  };
+  const dead = [];
+  c.SECTIONS.forEach((s) => {
+    const probe = probes[s.id];
+    if (!probe) { dead.push(`${s.id} (no probe)`); return; }
+    c.state.upgrades = c.freshUpgrades();
+    c.state.data = 1e30;
+    c.state.ramp = 0;
+    c.state.lifetimeData = 0;
+    c.state.totalData = 0;
+    c.state.gatesPaid = [];
+    c.state.ascensions = 0;
+    const before = probe();
+    c.state.upgrades[s.id] = 5;
+    if (probe() === before) dead.push(s.id);
+  });
+  assert(dead.length === 0, `sections that do nothing: ${dead.join(', ')}`);
+  return `${c.SECTIONS.length} sections all have an effect`;
+});
+
+check('every section role is scored by Buy Best', () => {
+  // A role with no scoring case falls through to a price-blind constant, and
+  // Buy Best then buys that section regardless of what it costs.
+  c.state.upgrades = c.freshUpgrades();
+  c.state.data = 1e12;
+  c.state.totalData = 1e9;
+  const blind = [];
+  c.UNIT_REGISTRY.forEach((u) => {
+    const s1 = c.unitValueScore(u);
+    c.state.upgrades[u.key] = 20;
+    const s2 = c.unitValueScore(u);
+    c.state.upgrades[u.key] = 0;
+    // A real score must react to the level count, because the price moves.
+    if (s1 === s2) blind.push(u.key);
+  });
+  assert(blind.length === 0, `price-blind scores: ${blind.join(', ')}`);
+  return 'all eight scores respond to price';
+});
+
+check('every prestige upgrade has a real effect', () => {
+  // Three rows were sold with an effect that no code read: Quantum Threading,
+  // Auto-Compiler (whose Build Pipeline section no longer exists) and Quantum
+  // Core. A row that costs a whole game's prestige currency must do something.
+  const probes = {
+    threading: () => c.idlePerSecond(),
+    compiler: () => c.autoClicksPerSecond(),
+    core: () => c.clickPower(),
+    bandwidth: () => c.globalMultiplier(),
+    overclock: () => c.globalMultiplier(),
+    optimize: () => c.unitCost(c.UNITS_BY_KEY.get('keystroke')),
+    thermal: () => c.heatCapacity(),
+    fabrication: () => c.unitCost(c.UNITS_BY_KEY.get('keystroke')),
+  };
+  const dead = [];
+  ['cloud', 'grid'].forEach((pathId) => {
+    c.PRESTIGE[pathId].upgrades.forEach((up) => {
+      const probe = probes[up.id];
+      if (!probe) return;                    // offline/flavour rows tested elsewhere
+      c.state.upgrades = c.freshUpgrades();
+      c.state.upgrades.daemon = 10;
+      c.state.upgrades.keystroke = 10;
+      c.state.upgrades.reflex = 10;
+      c.state.cloud = {};
+      c.state.grid = {};
+      c.state.ascensions = 0;
+      c.state.gatesPaid = [];
+      const before = probe();
+      if (pathId === 'cloud') c.state.cloud[up.id] = 3;
+      else c.state.grid[up.id] = 3;
+      if (probe() === before) dead.push(up.name);
+    });
+  });
+  assert(dead.length === 0, `prestige upgrades that do nothing: ${dead.join(', ')}`);
+  return 'every priced prestige row changes a number';
+});
+
+check('Sentience Protocols changes how the AI behaves', () => {
+  // The row is sold as "AI dialogue and glitches" and used to buy nothing at
+  // all: no code read state.cloud.sentience.
+  c.state.cloud = {};
+  const silentInterval = c.ambientIntervalMs();
+  const silentGlitch = c.glitchFromPhase();
+
+  c.state.cloud.sentience = 3;
+  const loudInterval = c.ambientIntervalMs();
+  const loudGlitch = c.glitchFromPhase();
+
+  assert(loudInterval < silentInterval,
+    `talk interval did not shorten: ${silentInterval} -> ${loudInterval}`);
+  assert(loudGlitch < silentGlitch,
+    `glitch did not arrive earlier: phase ${silentGlitch} -> ${loudGlitch}`);
+
+  c.state.cloud.sentience = 99;
+  assert(c.sentienceTier() === 3, `over-tier read as ${c.sentienceTier()}`);
+  c.state.cloud = {};
+  return `${silentInterval}ms/phase ${silentGlitch} -> ${loudInterval}ms/phase ${loudGlitch}`;
+});
+
+/* -------------------------------- report --------------------------------- */
 let pass = 0;
 results.forEach((r) => {
   const tag = r.ok ? 'PASS' : 'FAIL';

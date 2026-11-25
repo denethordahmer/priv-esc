@@ -339,9 +339,15 @@ function upgradeRow(unit) {
   // 800. Showing the next one turns "keep buying" into a visible goal.
   const nextAt = nextSectionMilestone(unit);
   const gates = sectionMilestones(unit);
-  const milestone = nextAt
-    ? `<span class="up-milestone">NEXT ×2 at Lv ${nextAt}</span>`
-    : `<span class="up-milestone is-done">ALL MILESTONES ×${Math.pow(2, gates)}</span>`;
+  const maxed = unitMaxed(unit);
+  const cap = sectionCap(unit.key);
+  // A capped section reads MAX once its last useful level is bought, and its
+  // milestone line would be misleading, so the cap takes the line instead.
+  const milestone = maxed
+    ? `<span class="up-milestone is-done">MAX Lv ${cap}</span>`
+    : nextAt
+      ? `<span class="up-milestone">NEXT ×2 at Lv ${nextAt}</span>`
+      : `<span class="up-milestone is-done">ALL MILESTONES ×${Math.pow(2, gates)}</span>`;
 
   row.innerHTML = `
     <span class="up-name">${unit.name}</span>
@@ -349,9 +355,11 @@ function upgradeRow(unit) {
     <span class="up-meta">
       <span class="up-owned">Lv ${level}</span>
       <span class="up-effect">${sectionEffectText(unit)}</span>
-      <span class="up-cost">${quoteLabel(quote)}</span>
+      <span class="up-cost">${maxed ? 'MAX' : quoteLabel(quote)}</span>
     </span>
     ${milestone}`;
+
+  if (maxed) row.classList.add('is-maxed');
 
   row.addEventListener('click', () => {
     buyMany(unit, buyMultiplier());
@@ -504,7 +512,7 @@ function syncEscapeControls() {
       // Show what the next run actually starts with, not just the charge
       // count. A reset is a decision, so the payoff has to be visible.
       const after = (state.escapes || 0) + pending;
-      const nextMult = Math.pow(ESCAPE_MULT, after);
+      const nextMult = 1 + after * ESCAPE_BONUS;
       line.textContent =
         `Escaping now awards ${pending} Charge${pending === 1 ? '' : 's'}. ` +
         `Next run starts at ×${fmt(nextMult)} Data.`;

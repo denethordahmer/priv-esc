@@ -106,8 +106,28 @@ function unitValueScore(unit) {
     case 'cost':
       gain = Math.max(state.data, cost) * unit.eff * 0.01;
       break;
+    case 'heat': {
+      // Heat is insurance, not income. A level is worth something only while
+      // the ceiling sits close to the heat the player actually generates;
+      // with plenty of headroom it prevents nothing. Scoring it as a flat
+      // constant made its value price-blind, so Buy Best bought Thermal Loop
+      // hundreds of times while every income section fell behind on price.
+      const cap = Math.max(1, heatCapacity());
+      const headroom = cap / Math.max(1e-9, heatPerClick());
+      const pressure = Math.min(1, 20 / Math.max(1, headroom));
+      gain = Math.max(1, dataPerSecond()) * 60 * (unit.eff / cap) * pressure;
+      break;
+    }
+    case 'prestige': {
+      // Exodus Protocol pays prestige currency, which has no Data price, so
+      // it is valued as a small share of what the next ascension is worth.
+      // Zero until the player can ascend, which keeps it a late purchase.
+      const payout = prestigeValue(state.totalData) || 0;
+      gain = unit.eff * payout * 10;
+      break;
+    }
     default:
-      gain = cost * 0.0005;                    // heat: low priority
+      gain = 0;                                // an unknown role earns nothing
   }
 
   return gain / cost;

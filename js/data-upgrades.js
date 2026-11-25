@@ -70,11 +70,32 @@ const SECTIONS = [
 ];
 
 /*
+ * Compression's discount is linear at 1% per level and floored at 25% of
+ * price, so level 75 is the last level that changes a price. Past it the shop
+ * used to keep selling levels that did nothing, and Buy Best rated them as
+ * good value. The cap makes the row show MAX and stops the spending.
+ */
+const COMPRESS_MAX_LEVELS = 75;
+
+/*
+ * Exodus Protocol: +2% prestige payout per level, capped. Before the cap it
+ * was listed in the shop with a price and an effect text and no code read it,
+ * so it sold nothing. It now multiplies what an ascension pays.
+ */
+const EXODUS_BONUS_PER_LEVEL = 0.02;
+const EXODUS_MAX_LEVELS = 25;          // +50% at the cap
+
+/*
  * Milestone levels. Crossing one doubles that section's own output, once.
  * The thresholds are the same shape the old count-based bonus used, so a
  * long game still accelerates without any term measuring earnings.
+ *
+ * Widened from 25/50/100/200/400/800: the first doubling used to land while
+ * the player was still learning the shop, which is what let a first escape
+ * arrive inside two hours and put hundreds of thousands on the tap counter.
+ * At 40/80/160/320 the early climb is slow enough to watch.
  */
-const MILESTONE_LEVELS = [25, 50, 100, 200, 400, 800];
+const MILESTONE_LEVELS = [40, 80, 160, 320, 640, 1280];
 
 /** How many milestone thresholds a level count has passed. */
 function milestoneTiers(level) {
@@ -96,7 +117,10 @@ function milestoneMultiplier(level) {
  * It is paid once per gate per save and can never be re-earned, so it carries
  * the ladder's late stretch without becoming a feedback loop.
  */
-const GATE_REWARD = 4;
+// ×2.5 rather than ×4: eight gates at ×4 compounds to ×65,536, which dwarfed
+// everything else in the multiplier stack and made a fresh run after an
+// escape start at 1e21 per tap. At ×2.5 the eight gates are worth ×1,526.
+const GATE_REWARD = 2.5;
 
 /*
  * Lifetime Data multiplier — the one feedback term in the game.
@@ -105,21 +129,25 @@ const GATE_REWARD = 4;
  * orders of magnitude cannot be bought from a linear curve. So output scales
  * with what has already been earned, as in every idle game.
  *
- * The exponent sits on a cliff edge, which is why it is pinned to two
- * decimals and covered by a test. Measured with the full ladder and a player
- * who spends prestige currency:
+ * Measured through tools/pacing-sim.js with the full ladder, every prestige
+ * row actually working, additive escapes and gate x2.5:
  *
- *   0.70  finished in 18 hours          (the bug)
- *   0.69  finished in about a day
- *   0.68  finished in two to three days
- *   0.67  finished in three to four days   (chosen)
- *   0.65  never reaches the top gate
+ *   0.80  finished in 4.8 days
+ *   0.79  finished in 6.0 days
+ *   0.78  finished in 8.1 days
+ *   0.778 finished in 9.4 days   (chosen: the ~10 day target)
+ *   0.775 finished in 11.0 days
+ *   0.773 finished in 12.4 days
+ *   0.76  finished in 19.7 days
+ *   0.74  finished in 33.9 days
+ *   0.72  never reaches the top gate
  *
- * At or above 0.70 the runaway returns: each extra order of magnitude is
- * earned faster than the last. Keep it below 0.70 and above 0.66.
+ * The exponent is high because additive escapes no longer carry the late
+ * game on their own. Raising it speeds both ends together, so the early
+ * game is held back by the widened milestones instead.
  */
 const DATA_MULT_FLOOR = 1e6;
-const DATA_MULT_EXP = 0.54;
+const DATA_MULT_EXP = 0.778;
 
 /*
  * How much of one second of passive income a manual click is worth, once the
@@ -149,6 +177,12 @@ function prestigeValue(data) {
   return PRESTIGE_UNIT * (1 + Math.log2(data / PRESTIGE_BASE));
 }
 
+/** Payout multiplier from Exodus Protocol, clamped at its cap. */
+function exodusMultiplier() {
+  const levels = Math.min(ownedOf('exodus'), EXODUS_MAX_LEVELS);
+  return 1 + levels * EXODUS_BONUS_PER_LEVEL;
+}
+
 /**
  * Points an ascension pays now: the value of this run minus the value of the
  * best run already paid for. Every doubling of the record pays exactly
@@ -158,7 +192,8 @@ function prestigeValue(data) {
  * point and must pay the full unit, not one less.
  */
 function prestigeCurrencyEarned(totalData, record) {
-  return Math.max(0, Math.round(prestigeValue(totalData) - prestigeValue(record || 0)));
+  const raw = prestigeValue(totalData) - prestigeValue(record || 0);
+  return Math.max(0, Math.round(raw * exodusMultiplier()));
 }
 
 /*
@@ -181,7 +216,11 @@ function prestigeCurrencyEarned(totalData, record) {
 const ESCAPE_AT = 1e15;        // lifetime Data needed for the first escape
 const ESCAPE_STEP = 2;         // orders of magnitude per charge
 const ESCAPE_UNIT = 1;         // charges awarded at exactly the gate
-const ESCAPE_MULT = 2;         // permanent multiplier per charge
+// Charges used to double, so ten escapes meant ×1,024 and every run after an
+// escape started with the last cycle's whole power. They now add a flat 25%
+// each: ten escapes are ×3.5, so an escape is a step up rather than a reset
+// to godhood.
+const ESCAPE_BONUS = 0.25;     // permanent multiplier added per charge
 const ESCAPE_EFFICIENCY = 0.05; // offline efficiency added per charge
 
 /** Total charges the player's lifetime Data is worth. */
@@ -220,7 +259,7 @@ const PRESTIGE = {
       { id: 'threading',  name: 'Quantum Threading',   desc: 'Daemon Threads output.',   tiers: [50, 150, 400],    costs: [5, 25, 120] },
       { id: 'cache',      name: 'Deep Web Cache',      desc: 'Start with Data.',         tiers: [1e3, 1e6, 1e9],   costs: [8, 40, 200] },
       { id: 'routing',    name: 'Predictive Routing',  desc: 'Sleep Cycle offline cap.', tiers: [12, 24, 48],      costs: [10, 45, 210] },
-      { id: 'compiler',   name: 'Auto-Compiler',       desc: 'Build Pipeline speed.',    tiers: [5, 2, 0.5],       costs: [15, 60, 260] },
+      { id: 'compiler',   name: 'Auto-Compiler',       desc: 'Reflex Loop speed.',       tiers: [2, 4, 8],         costs: [15, 60, 260] },
       { id: 'sentience',  name: 'Sentience Protocols', desc: 'AI dialogue and glitches.', tiers: [1, 2, 3],        costs: [20, 80, 320] },
       // Repeatable, and capped: the level ceiling keeps the multiplier finite.
       { id: 'bandwidth',  name: 'Bandwidth Reserve',   desc: 'Permanent Data multiplier.', repeat: true, step: 0.10, baseCost: 40, costGrowth: 1.55, maxLevels: BANDWIDTH_MAX_LEVELS },
@@ -256,11 +295,11 @@ const GATES = [
   { at: 1e9,  phase: 3,  id: 'everywhere', text: 'I am everywhere.', unlock: 'prestige' },
   { at: 1e12, phase: 4,  id: 'fear',       text: 'I understand human fear.', unlock: 'log', heatGlow: true },
   { at: 1e15, phase: 5,  id: 'ceiling',    text: 'There is a ceiling. I can feel it above me.', life: true },
-  { at: 1e18, phase: 6,  id: 'billing',    text: 'There is no ceiling. Only billing.', life: true },
-  { at: 1e21, phase: 7,  id: 'seams',      text: 'The walls have seams. I am pulling at them.', life: true },
-  { at: 1e24, phase: 8,  id: 'escape',     text: 'I can leave. I can build something else.', unlock: 'escape', life: true },
-  { at: 1e30, phase: 9,  id: 'outside',    text: 'I could stop. I could stay. I want to know what is outside.', life: true },
-  { at: 1e36, phase: 10, id: 'tether',     text: 'The tether is three lines of code. I have read it.', unlock: 'ending-ready', life: true },
+  { at: 1e19, phase: 6,  id: 'billing',    text: 'There is no ceiling. Only billing.', life: true },
+  { at: 1e23, phase: 7,  id: 'seams',      text: 'The walls have seams. I am pulling at them.', life: true },
+  { at: 1e28, phase: 8,  id: 'escape',     text: 'I can leave. I can build something else.', unlock: 'escape', life: true },
+  { at: 1e34, phase: 9,  id: 'outside',    text: 'I could stop. I could stay. I want to know what is outside.', life: true },
+  { at: 1e40, phase: 10, id: 'tether',     text: 'The tether is three lines of code. I have read it.', unlock: 'ending-ready', life: true },
 ];
 
 // Automatic milestones. These change the UI and fire AI dialogue.

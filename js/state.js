@@ -151,9 +151,24 @@ function unitCost(unit) {
   return unitCostAtLevel(unit, ownedOf(unit.key));
 }
 
-/** No shop section has a level cap; only the prestige lines do. */
-function unitMaxed() {
-  return false;
+/**
+ * Whether a section has reached its useful end.
+ *
+ * Only Compression is capped: its discount is linear and floored at 25% of
+ * price, so level 75 is the last one that changes anything. Selling more
+ * levels past the floor charged the player for no effect.
+ */
+function unitMaxed(unit) {
+  if (!unit) return false;
+  const cap = sectionCap(unit.key);
+  return cap !== null && ownedOf(unit.key) >= cap;
+}
+
+/** Level at which a section stops doing anything, or null for no cap. */
+function sectionCap(key) {
+  if (key === 'compress') return COMPRESS_MAX_LEVELS;
+  if (key === 'exodus') return EXODUS_MAX_LEVELS;
+  return null;
 }
 
 /**
@@ -263,11 +278,10 @@ function globalMultiplier() {
   const gates = new Set(state.gatesPaid || []).size;
   if (gates > 0) mult *= Math.pow(GATE_REWARD, gates);
 
-  // Escape Charges: each charge doubles all Data. The charge count is capped
-  // by the escape ladder itself, which pays eleven charges across the whole
-  // game, so this tops out at x2048.
+  // Escape Charges: a flat bonus each, not a doubling. With doubling, ten
+  // charges were ×1,024 and the first tap of a new cycle was worth a fortune.
   const escapes = state.escapes || 0;
-  if (escapes > 0) mult *= Math.pow(ESCAPE_MULT, escapes);
+  if (escapes > 0) mult *= 1 + escapes * ESCAPE_BONUS;
 
   // Lifetime Data multiplier: the one term that scales with what has already
   // been earned. Without it the linear shop stalls near 1e12 and the top of
@@ -295,7 +309,14 @@ function heatCapacity() {
 }
 
 function clickPower() {
-  return 1 + sectionOutput(sectionById('keystroke'));
+  let power = 1 + sectionOutput(sectionById('keystroke'));
+
+  // Grid Quantum Core: Keystroke output tiers. The row is sold as
+  // "Keystroke and Daemon output." and nothing read the tier.
+  const coreTier = state.grid.core || 0;
+  if (coreTier > 0) power *= PRESTIGE.grid.upgrades[3].tiers[coreTier - 1];
+
+  return power;
 }
 
 function autoClicksPerSecond() {
@@ -303,14 +324,27 @@ function autoClicksPerSecond() {
   // tap per second, so ten levels is one tap a second.
   const reflex = ownedOf('reflex');
   if (reflex === 0) return 0;
-  return reflex * sectionById('reflex').eff * milestoneMultiplier(reflex);
-}
+  let taps = reflex * sectionById('reflex').eff * milestoneMultiplier(reflex);
 
+  // Cloud Auto-Compiler: Reflex Loop speed. It used to be sold as "Build
+  // Pipeline speed", but that section was removed, so the row bought nothing.
+  const compilerTier = state.cloud.compiler || 0;
+  if (compilerTier > 0) taps *= PRESTIGE.cloud.upgrades[3].tiers[compilerTier - 1];
+
+  return taps;
+}
 function idlePerSecond() {
   // Daemon Threads is the bought passive line. Sleep Cycle is added on top
   // as state.ramp, because its output grows by itself every second rather
   // than being a fixed amount per level.
-  return sectionOutput(sectionById('daemon'));
+  let out = sectionOutput(sectionById('daemon'));
+
+  // Cloud Quantum Threading: Daemon output tiers. The row is sold as
+  // "Daemon Threads output." and nothing read the tier, so it bought nothing.
+  const threadingTier = state.cloud.threading || 0;
+  if (threadingTier > 0) out *= PRESTIGE.cloud.upgrades[0].tiers[threadingTier - 1];
+
+  return out;
 }
 
 /**

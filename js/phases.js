@@ -62,8 +62,10 @@ function applyPhase(phase) {
 
   // Later phases run progressively more motion. Chasing-the-tether phases run
   // the full glitch; 8 and 9 run it too, 7 runs a light fault, and everything
-  // before 7 runs nothing.
-  if (clamped >= 8) startGlitch(); else stopGlitch();
+  // before 7 runs nothing. Sentience Protocols brings the glitch forward,
+  // which is the "glitches" half of what that upgrade sells.
+  const glitchAt = typeof glitchFromPhase === 'function' ? glitchFromPhase() : 8;
+  if (clamped >= glitchAt) startGlitch(); else stopGlitch();
   if (clamped === 7) startFault(); else stopFault();
 }
 
