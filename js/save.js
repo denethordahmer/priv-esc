@@ -35,6 +35,7 @@ function serialise() {
     ec: state.endingCount,
     nl: state.narrative.slice(-200),
     sa: state.startedAt,
+    ltk: state.lastTick,
     tls: state.totalPlaySeconds,
     tcl: state.totalClicks,
     st: state.settings,
@@ -96,6 +97,7 @@ function loadState(raw) {
   state.ascensions = num(d.a, 0);
   state.phase = num(d.ph, 0);
   state.startedAt = num(d.sa, Date.now());
+  state.lastTick = num(d.ltk, 0);
   state.totalPlaySeconds = num(d.tls, 0);
   state.totalClicks = num(d.tcl, 0);
 
@@ -183,6 +185,7 @@ let saveDisabled = false;
 function saveNow(showStatus = false) {
   if (saveDisabled) return false;
   try {
+    state.lastTick = Date.now();
     localStorage.setItem(SAVE_KEY, serialise());
     state.lastSaveAt = Date.now();
     if (showStatus) setSaveStatus('Saved just now.');
@@ -228,6 +231,14 @@ function wipeSave() {
 function applyOfflineProgress() {
   const elapsedMs = Date.now() - state.lastTick;
   const elapsedSec = Math.max(0, elapsedMs / 1000);
+
+  // UPTIME counts the whole absence, uncapped, so the clock reflects hours
+  // away rather than the value it showed when the player left.
+  state.totalPlaySeconds += elapsedSec;
+
+  // Anchor now so a future boot does not re-award this absence.
+  state.lastTick = Date.now();
+
   if (elapsedSec < 30) return null;
 
   const routingTier = state.cloud.routing || 0;

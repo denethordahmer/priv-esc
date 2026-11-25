@@ -29,6 +29,8 @@ function boot() {
     state.maxHeat = heatCapacity();
   }
 
+  // Older saves had no anchored timestamp; treat the first visit as the
+  // starting point so they don't get a giant retroactive absence.
   state.lastTick = state.lastTick || Date.now();
 
   // If there is a save, work out what happened while the tab was closed.
